@@ -3,12 +3,15 @@ import { signOut, getCurrentUser, signInWithRedirect } from 'aws-amplify/auth';
 import Calendar from './components/Calendar';
 import Dashboard from './components/Dashboard';
 import './App.css';
+import Sidebar from './components/Sidebar';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' 或 'calendar'
   const [selectedProject, setSelectedProject] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
   const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,24 +101,34 @@ function App() {
           </div>
         </div>
       </header>
-      <main className="main-content">
-        {currentView === 'dashboard' ? (
-          <Dashboard 
-            user={user} 
-            onProjectSelect={handleProjectSelect}
-          />
-        ) : (
-          <div>
-            {selectedProject && (
-              <div className="project-header">
-                <h2>{selectedProject.name}</h2>
-                <p>{selectedProject.description}</p>
-              </div>
-            )}
-            <Calendar user={user} selectedProject={selectedProject} />
-          </div>
-        )}
-      </main>
+      <div style={{ display: 'grid', gridTemplateColumns: isSidebarOpen ? '220px 1fr' : '56px 1fr', gap: '1rem' }}>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggleOpen={() => setIsSidebarOpen(v => !v)}
+          onGoHome={handleBackToDashboard}
+          showDebug={showDebug}
+          onToggleDebug={() => setShowDebug(v => !v)}
+        />
+        <main className="main-content">
+          {currentView === 'dashboard' ? (
+            <Dashboard 
+              user={user} 
+              onProjectSelect={handleProjectSelect}
+              showDebug={showDebug}
+            />
+          ) : (
+            <div>
+              {selectedProject && (
+                <div className="project-header">
+                  <h2>{selectedProject.name}</h2>
+                  <p>{selectedProject.description}</p>
+                </div>
+              )}
+              <Calendar user={user} selectedProject={selectedProject} />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

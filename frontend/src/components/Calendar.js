@@ -16,6 +16,18 @@ const Calendar = ({ user, selectedProject }) => {
   const [error, setError] = useState(null);
   const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
   const api = new ApiClient();
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const refetchAfterMutation = async () => {
+    try {
+      await sleep(200);
+      await fetchEvents();
+      await sleep(200);
+      await fetchEvents();
+    } catch (e) {
+      console.error('Refetch after mutation failed:', e);
+    }
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -119,7 +131,7 @@ const Calendar = ({ user, selectedProject }) => {
         return; // DEMO 模式不呼叫 API
       }
       
-      const data = await api.getCalendars();
+      const data = await api.getCalendars({ projectId: selectedProject?.id });
       console.log('Calendars data:', data);
       // 安全取得事件清單（兼容不同回傳形狀）
       const eventsArray = Array.isArray(data?.events)
@@ -216,9 +228,8 @@ const Calendar = ({ user, selectedProject }) => {
           ownerId: selectedProject.ownerId || user?.username
         })
       });
-      
-      // 重新載入事件
-      fetchEvents();
+      // 重新載入事件（延遲 + 重試，避免讀到未同步資料）
+      await refetchAfterMutation();
     } catch (err) {
       console.error('Error creating event:', err);
       alert('建立事件時發生錯誤');
@@ -231,10 +242,9 @@ const Calendar = ({ user, selectedProject }) => {
         setEvents(prev => prev.filter(e => e.id !== eventId));
         return;
       }
-      await api.deleteEvent(eventId);
-      
-      // 重新載入事件
-      fetchEvents();
+      await api.deleteEvent(eventId, selectedProject?.id);
+      // 重新載入事件（延遲 + 重試，避免讀到未同步資料）
+      await refetchAfterMutation();
     } catch (err) {
       console.error('Error deleting event:', err);
       alert('刪除事件時發生錯誤');

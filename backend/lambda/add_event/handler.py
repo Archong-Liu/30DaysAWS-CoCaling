@@ -24,8 +24,8 @@ def lambda_handler(event, context):
         # 解析請求內容
         body = json.loads(event.get('body', '{}'))
         
-        # 驗證必要欄位
-        required_fields = ['title', 'startDate', 'endDate']
+        # 驗證必要欄位（事件需隸屬某專案）
+        required_fields = ['title', 'startDate', 'endDate', 'projectId']
         for field in required_fields:
             if field not in body:
                 return build_response(400, {
@@ -40,14 +40,18 @@ def lambda_handler(event, context):
         start_date = datetime.fromisoformat(body['startDate'].replace('Z', '+00:00'))
         week_of_year = f"{start_date.year}-W{start_date.isocalendar()[1]:02d}"
         
-        # 建立事件項目（使用新單表設計）
+        # 建立事件項目（統一以專案為分區鍵）
         event_item = {
-            'PK': f'EVENT#{event_id}',
+            'PK': f'PROJECT#{body["projectId"]}',
             'SK': f'EVENT#{event_id}',
+            # 供使用者維度查詢
             'GSI1PK': f'USER#{user_id}',
             'GSI1SK': f'EVENT#{event_id}',
+            # 供使用者 + 日期維度查詢
             'GSI2PK': f'USER#{user_id}',
-            'GSI2SK': body['startDate'],  # 用於日期範圍查詢
+            'GSI2SK': body['startDate'],
+            # 便於 API 回傳與刪除時辨識
+            'eventId': event_id,
             'title': body['title'],
             'description': body.get('description', ''),
             'startDate': body['startDate'],
@@ -70,8 +74,16 @@ def lambda_handler(event, context):
         if 'ownerId' in body:
             event_item['ownerId'] = body['ownerId']
         
-        # 儲存到 DynamoDB
-        table.put_item(Item=event_item)
+        # 儲存到 DynamoDB（避免重複，條件寫入）
+        try:
+            table.put_item(
+                Item=event_item,
+                ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)"
+            )
+        except table.meta.client.exceptions.ConditionalCheckFailedException:
+            return build_response(409, {
+                'error': 'Duplicate event detected'
+            })
         
         return build_response(201, {
             'message': 'Event created successfully',

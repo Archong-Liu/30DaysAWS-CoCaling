@@ -12,25 +12,28 @@ table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
 
 def lambda_handler(event, context):
     """
-    依 userId + eventId 刪除事件
-    路徑參數：/events/{eventId}
+    依 projectId + eventId 刪除事件（PK=PROJECT#，SK=EVENT#）
+    路徑參數：/events/{eventId}?projectId=xxx
     需要 Cognito Authorizer，從 claims 取得 sub 作為 userId
     """
     try:
         # 從 Cognito 取得用戶 ID
         user_id = event['requestContext']['authorizer']['claims']['sub']
-        # 取得路徑參數
+        # 取得路徑與查詢參數
         event_id = event.get('pathParameters', {}).get('eventId')
+        query_params = event.get('queryStringParameters', {}) or {}
+        project_id = query_params.get('projectId')
 
-        if not event_id:
+        if not event_id or not project_id:
             return build_response(400, {
-                'error': 'Missing eventId in path'
+                'error': 'Missing parameters',
+                'details': 'eventId (path) and projectId (query) are required'
             })
 
-        # 刪除項目（使用新單表設計）
+        # 刪除專案下的事件
         table.delete_item(
             Key={
-                'PK': f'EVENT#{event_id}',
+                'PK': f'PROJECT#{project_id}',
                 'SK': f'EVENT#{event_id}'
             }
         )

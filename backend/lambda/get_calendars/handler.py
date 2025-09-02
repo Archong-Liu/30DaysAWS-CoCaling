@@ -38,18 +38,27 @@ def lambda_handler(event, context):
         start_date = query_params.get('startDate')
         end_date = query_params.get('endDate')
         week_of_year = query_params.get('weekOfYear')
+        project_id = query_params.get('projectId')
         
-        # 建立查詢條件，並保留查詢參數供分頁續查
-        query_kwargs = {
-            'IndexName': 'GSI1',
-            'KeyConditionExpression': Key('GSI1PK').eq(f'USER#{user_id}') & Key('GSI1SK').begins_with('EVENT#')
-        }
+        # 建立查詢條件
+        # 1) 若給 projectId，使用主表 PK=PROJECT# 查該專案的事件
+        # 2) 否則使用 GSI1 依使用者查事件，或 GSI2 依日期範圍
+        if project_id:
+            query_kwargs = {
+                'KeyConditionExpression': Key('PK').eq(f'PROJECT#{project_id}') & Key('SK').begins_with('EVENT#'),
+                'ConsistentRead': True  # 主表查詢支援強一致，避免讀到未同步的資料
+            }
+        else:
+            query_kwargs = {
+                'IndexName': 'GSI1',
+                'KeyConditionExpression': Key('GSI1PK').eq(f'USER#{user_id}') & Key('GSI1SK').begins_with('EVENT#')
+            }
 
         if week_of_year:
             # 使用 GSI1 查詢特定週的事件
             query_kwargs['FilterExpression'] = Attr('weekOfYear').eq(week_of_year)
-        elif start_date and end_date:
-            # 使用 GSI2 查詢日期範圍
+        elif start_date and end_date and not project_id:
+            # 使用 GSI2 查詢日期範圍（僅在未指定 projectId 時）
             query_kwargs['IndexName'] = 'GSI2'
             query_kwargs['KeyConditionExpression'] = Key('GSI2PK').eq(f'USER#{user_id}') & Key('GSI2SK').between(start_date, end_date)
 
@@ -72,8 +81,8 @@ def lambda_handler(event, context):
             has_project_info = 'projectId' in event
             
             formatted_event = {
-                'userId': event['GSI1PK'].replace('USER#', ''),
-                'eventId': event['PK'].replace('EVENT#', ''),
+                'userId': user_id,
+                'eventId': event.get('eventId') or event['SK'].replace('EVENT#', ''),
                 'title': event['title'],
                 'description': event.get('description', ''),
                 'startDate': event['startDate'],

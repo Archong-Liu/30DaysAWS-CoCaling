@@ -3,7 +3,7 @@ import DataService from '../services/dataService';
 import ApiClient from '../services/apiClient';
 import './Dashboard.css';
 
-const Dashboard = ({ user, onProjectSelect }) => {
+const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // 強制重新渲染的鍵
@@ -441,8 +441,8 @@ const Dashboard = ({ user, onProjectSelect }) => {
       )}
 
       <div className="projects-grid" key={refreshKey}>
-        {/* 調試信息 */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* 調試信息（由外部開關控制） */}
+        {showDebug && (
           <div style={{ gridColumn: '1 / -1', padding: '1rem', background: '#f0f0f0', marginBottom: '1rem', borderRadius: '8px' }}>
             <strong>調試信息:</strong> 專案數量: {projects.length}, 刷新鍵: {refreshKey}
             <br />

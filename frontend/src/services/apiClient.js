@@ -88,16 +88,16 @@ class ApiClient {
 
       const parsed = await this.parseResponse(response);
 
-      // 當 Amplify 回傳空物件或不可解析結果時，回退到 fetch 直連
+      // 僅對 GET 採用後備重試，避免 POST/PUT/DELETE 造成重複提交
       const isEmptyAmplify = !parsed || (typeof parsed === 'object' && Object.keys(parsed).length === 0);
-      if (isEmptyAmplify && this.baseUrl) {
+      if (isEmptyAmplify && this.baseUrl && method.toLowerCase() === 'get') {
         return this.requestViaFetch(method, path, data, headers);
       }
 
       return parsed;
     } catch (error) {
-      console.warn(`Amplify API request failed, fallback to fetch: ${method} ${path}`, error);
-      if (this.baseUrl) {
+      console.warn(`Amplify API request failed${method.toLowerCase() === 'get' ? ', fallback to fetch' : ''}: ${method} ${path}`, error);
+      if (this.baseUrl && method.toLowerCase() === 'get') {
         const headers = await this.buildHeaders();
         return this.requestViaFetch(method, path, data, headers);
       }
@@ -271,16 +271,23 @@ class ApiClient {
   }
 
   // 日曆相關 API（已實現的接口）
-  async getCalendars() {
-    return this.request('get', '/calendars');
+  async getCalendars(params = {}) {
+    const query = new URLSearchParams();
+    if (params.projectId) query.set('projectId', params.projectId);
+    if (params.startDate) query.set('startDate', params.startDate);
+    if (params.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString();
+    const path = qs ? `/calendars?${qs}` : '/calendars';
+    return this.request('get', path);
   }
 
   async createEvent(eventData) {
     return this.request('post', '/events', eventData);
   }
 
-  async deleteEvent(eventId) {
-    return this.request('delete', `/events/${eventId}`);
+  async deleteEvent(eventId, projectId) {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
+    return this.request('delete', `/events/${eventId}${query}`);
   }
 
   // 專案管理 API（新的統一接口）
