@@ -1,0 +1,520 @@
+/* Dashboard 容器 */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Dashboard 標題區域 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #E1E5E9;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  color: #232F3E;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+/* 專案網格 */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* 專案卡片 */
+.project-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(35, 47, 62, 0.1);
+  border: 1px solid #E1E5E9;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(35, 47, 62, 0.15);
+  border-color: #FF9900;
+}
+
+.project-card:active {
+  transform: translateY(-2px);
+}
+
+/* 專案顏色條 */
+.project-color-bar {
+  height: 6px;
+  width: 100%;
+}
+
+/* 專案內容 */
+.project-content {
+  padding: 1.5rem;
+}
+
+.project-name {
+  margin: 0 0 0.5rem 0;
+  color: #232F3E;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.project-description {
+  margin: 0 0 1rem 0;
+  color: #6B7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  min-height: 2.5rem;
+}
+
+/* 專案統計 */
+.project-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* 即將到來的事件 */
+.upcoming-events {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border-left: 3px solid #3B82F6;
+}
+
+.upcoming-events h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1E40AF;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.event-title {
+  color: #374151;
+  font-weight: 500;
+}
+
+.event-time {
+  color: #6B7280;
+  font-size: 0.75rem;
+}
+
+/* 專案成員 */
+.project-members {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.members-avatars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FF9900;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.member-avatar.more-members {
+  background: #6B7280;
+  font-size: 0.75rem;
+}
+
+/* 協作者提示 */
+.collaborator-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.collaborator-hint:hover {
+  background: #FDE68A;
+  border-color: #D97706;
+}
+
+.hint-icon {
+  font-size: 1rem;
+}
+
+.hint-text {
+  font-size: 0.75rem;
+  color: #92400E;
+  font-weight: 500;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  color: #232F3E;
+  font-weight: 600;
+}
+
+/* 專案操作按鈕 */
+.project-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.project-card:hover .project-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #E1E5E9;
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.action-btn:hover {
+  background: white;
+  border-color: #FF9900;
+  transform: scale(1.1);
+}
+
+/* 新增專案卡片 */
+.add-project-card {
+  border: 2px dashed #D1D5DB;
+  background: #F9FAFB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.add-project-card:hover {
+  border-color: #FF9900;
+  background: #FEF3C7;
+}
+
+.add-project-content {
+  text-align: center;
+  color: #6B7280;
+}
+
+.add-icon {
+  font-size: 3rem;
+  color: #9CA3AF;
+  margin-bottom: 1rem;
+  font-weight: 300;
+}
+
+.add-project-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  font-size: 1.125rem;
+}
+
+.add-project-content p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* 建立專案表單 */
+.create-project-form,
+.invite-collaborator-form {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(35, 47, 62, 0.15);
+  border: 1px solid #E1E5E9;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+/* 邀請協作者表單特定樣式 */
+.invite-collaborator-form .form-content {
+  padding: 1.5rem;
+}
+
+.disabled-input {
+  background-color: #F3F4F6;
+  color: #6B7280;
+  cursor: not-allowed;
+}
+
+/* 角色選擇器 */
+select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background-color: white;
+  color: #374151;
+}
+
+select:focus {
+  outline: none;
+  border-color: #FF9900;
+  box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.1);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 0 1.5rem;
+  border-bottom: 1px solid #E1E5E9;
+}
+
+.form-header h3 {
+  margin: 0;
+  color: #232F3E;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.form-content {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #FF9900;
+  box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #E1E5E9;
+}
+
+/* 按鈕樣式 */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #FF9900;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #E47911;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #E5E7EB;
+  border-color: #9CA3AF;
+}
+
+/* 空狀態 */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #E1E5E9;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  margin: 0 0 2rem 0;
+  color: #6B7280;
+  font-size: 1rem;
+}
+
+/* 載入狀態 */
+.loading-container {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  color: #6B7280;
+  font-size: 1rem;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .dashboard-header .btn {
+    align-self: stretch;
+  }
+  
+  .projects-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .project-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .project-actions {
+    position: static;
+    opacity: 1;
+    margin-top: 1rem;
+    justify-content: flex-end;
+  }
+}

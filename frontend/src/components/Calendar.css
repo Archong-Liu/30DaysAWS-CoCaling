@@ -1,0 +1,267 @@
+/* FullCalendar 自訂樣式 - AWS 風格 */
+.fc {
+  font-family: 'Amazon Ember', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.fc-header-toolbar {
+  padding: 1rem;
+  background: #FAFAFA;
+  border-bottom: 1px solid #E1E5E9;
+}
+
+.fc-button {
+  background: #FF9900 !important;
+  border-color: #FF9900 !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 4px rgba(255, 153, 0, 0.2) !important;
+}
+
+.fc-button:hover {
+  background: #E47911 !important;
+  border-color: #E47911 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 153, 0, 0.3) !important;
+}
+
+.fc-button:active {
+  background: #D6760C !important;
+  border-color: #D6760C !important;
+  transform: translateY(0);
+}
+
+.fc-button-primary:not(:disabled).fc-button-active,
+.fc-button-primary:not(:disabled):active {
+  background: #D6760C !important;
+  border-color: #D6760C !important;
+}
+
+.fc-daygrid-day {
+  transition: background-color 0.2s ease;
+}
+
+.fc-daygrid-day:hover {
+  background-color: #F8F9FA;
+}
+
+.fc-daygrid-day.fc-day-today {
+  background-color: #FFF3CD !important;
+  border: 2px solid #FF9900 !important;
+}
+
+.fc-event {
+  border-radius: 4px;
+  border: none;
+  padding: 2px 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fc-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.fc-event-title {
+  font-weight: 600;
+}
+
+/* AWS 風格的預設事件顏色 */
+.fc-event[style*="background-color: rgb(37, 99, 235)"] {
+  background-color: #FF9900 !important;
+  border-color: #E47911 !important;
+}
+
+.fc-event[style*="background-color: rgb(22, 163, 74)"] {
+  background-color: #232F3E !important;
+  border-color: #37475A !important;
+}
+
+.fc-event[style*="background-color: rgb(245, 158, 11)"] {
+  background-color: #146EB4 !important;
+  border-color: #0F5A8A !important;
+}
+
+.fc-col-header-cell {
+  background: #FAFAFA;
+  font-weight: 600;
+  color: #232F3E;
+  padding: 0.75rem 0;
+  border-bottom: 2px solid #E1E5E9;
+}
+
+.fc-daygrid-day-number {
+  font-weight: 500;
+  color: #232F3E;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5rem !important;
+  font-weight: 600;
+  color: #232F3E;
+}
+
+.fc-list-event {
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  transition: background-color 0.2s ease;
+  border-left: 3px solid #FF9900;
+}
+
+.fc-list-event:hover {
+  background-color: #F8F9FA;
+}
+
+.fc-list-event-title {
+  font-weight: 600;
+  color: #232F3E;
+}
+
+.fc-list-event-time {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* AWS 風格的週末樣式 */
+.fc-day-sat,
+.fc-day-sun {
+  background-color: #F8F9FA;
+}
+
+.fc-day-sat .fc-daygrid-day-number,
+.fc-day-sun .fc-daygrid-day-number {
+  color: #666;
+}
+
+/* AWS 風格的月份切換器 */
+.fc-prev-button,
+.fc-next-button {
+  background: #232F3E !important;
+  border-color: #232F3E !important;
+}
+
+.fc-prev-button:hover,
+.fc-next-button:hover {
+  background: #37475A !important;
+  border-color: #37475A !important;
+}
+
+/* AWS 風格的今天按鈕 */
+.fc-today-button {
+  background: #146EB4 !important;
+  border-color: #146EB4 !important;
+}
+
+.fc-today-button:hover {
+  background: #0F5A8A !important;
+  border-color: #0F5A8A !important;
+}
+
+/* AWS 風格的視圖切換按鈕 */
+.fc-dayGridMonth-button,
+.fc-timeGridWeek-button,
+.fc-timeGridDay-button,
+.fc-listWeek-button {
+  background: #FAFAFA !important;
+  border-color: #D5DBDB !important;
+  color: #232F3E !important;
+}
+
+.fc-dayGridMonth-button:hover,
+.fc-timeGridWeek-button:hover,
+.fc-timeGridDay-button:hover,
+.fc-listWeek-button:hover {
+  background: #E1E5E9 !important;
+  border-color: #C7C7C7 !important;
+}
+
+.fc-dayGridMonth-button.fc-button-active,
+.fc-timeGridWeek-button.fc-button-active,
+.fc-timeGridDay-button.fc-button-active,
+.fc-listWeek-button.fc-button-active {
+  background: #FF9900 !important;
+  border-color: #FF9900 !important;
+  color: white !important;
+}
+
+/* AWS 風格的載入狀態 */
+.fc-loading {
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #232F3E;
+  font-weight: 500;
+}
+
+/* AWS 風格的錯誤狀態 */
+.fc-error {
+  background: #F8D7DA;
+  color: #721C24;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #F5C6CB;
+  margin: 1rem 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .fc-header-toolbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .fc-button {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .fc-toolbar-title {
+    font-size: 1.25rem !important;
+  }
+  
+  .fc-event {
+    font-size: 0.75rem;
+    padding: 1px 2px;
+  }
+}
+
+/* AWS 風格的空狀態 */
+.fc-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.fc-empty-state::before {
+  content: "📅";
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* AWS 風格的工具提示 */
+.fc-event-tooltip {
+  background: #232F3E;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}

@@ -1,0 +1,155 @@
+name: Deploy Calendar App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --watchAll=false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install backend dependencies
+        working-directory: ./backend/cdk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        working-directory: ./backend/cdk
+        run: |
+          python -m pytest tests/ -v
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install backend dependencies
+        working-directory: ./backend/cdk
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CDK stacks
+        working-directory: ./backend/cdk
+        run: |
+          cdk deploy --all --require-approval never
+
+      - name: Get CDK outputs
+        working-directory: ./backend/cdk
+        run: |
+          cdk list --outputs-only > cdk-outputs.json
+
+      - name: Parse CDK outputs
+        id: outputs
+        run: |
+          echo "USER_POOL_ID=$(jq -r '.[] | select(.OutputKey=="UserPoolId") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+          echo "USER_POOL_CLIENT_ID=$(jq -r '.[] | select(.OutputKey=="UserPoolClientId") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+          echo "IDENTITY_POOL_ID=$(jq -r '.[] | select(.OutputKey=="IdentityPoolId") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+          echo "API_GATEWAY_URL=$(jq -r '.[] | select(.OutputKey=="ApiGatewayUrl") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+          echo "S3_BUCKET=$(jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+          echo "CLOUDFRONT_DISTRIBUTION_ID=$(jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue' cdk-outputs.json)" >> $GITHUB_OUTPUT
+
+  deploy-frontend:
+    needs: [test, deploy-backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        env:
+          REACT_APP_AWS_REGION: ${{ env.AWS_REGION }}
+          REACT_APP_USER_POOL_ID: ${{ needs.deploy-backend.outputs.USER_POOL_ID }}
+          REACT_APP_USER_POOL_CLIENT_ID: ${{ needs.deploy-backend.outputs.USER_POOL_CLIENT_ID }}
+          REACT_APP_IDENTITY_POOL_ID: ${{ needs.deploy-backend.outputs.IDENTITY_POOL_ID }}
+          REACT_APP_API_GATEWAY_URL: ${{ needs.deploy-backend.outputs.API_GATEWAY_URL }}
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        working-directory: ./frontend
+        run: |
+          aws s3 sync build/ s3://${{ needs.deploy-backend.outputs.S3_BUCKET }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ needs.deploy-backend.outputs.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+  notify:
+    needs: [deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify deployment status
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()

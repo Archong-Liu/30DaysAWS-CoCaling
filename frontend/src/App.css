@@ -1,0 +1,130 @@
+/* AWS 風格的應用程式樣式 */
+.App {
+  text-align: center;
+  font-family: 'Amazon Ember', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background: linear-gradient(135deg, #232F3E 0%, #37475A 100%);
+  padding: 20px;
+  color: white;
+  border-bottom: 3px solid #FF9900;
+}
+
+.App-link {
+  color: #FF9900;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.App-link:hover {
+  color: #E47911;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* AWS 風格的載入動畫 */
+.aws-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #E1E5E9;
+  border-radius: 50%;
+  border-top-color: #FF9900;
+  animation: aws-spin 1s ease-in-out infinite;
+}
+
+@keyframes aws-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* AWS 風格的卡片樣式 */
+.aws-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(35, 47, 62, 0.1);
+  border: 1px solid #E1E5E9;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+/* AWS 風格的標籤 */
+.aws-tag {
+  display: inline-block;
+  background: #E1E5E9;
+  color: #232F3E;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0.25rem;
+}
+
+/* 專案頭部樣式 */
+.project-header {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(35, 47, 62, 0.1);
+  border: 1px solid #E1E5E9;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.project-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #232F3E;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.project-header p {
+  margin: 0;
+  color: #6B7280;
+  font-size: 1rem;
+}
+
+.aws-tag.primary {
+  background: #FF9900;
+  color: white;
+}
+
+.aws-tag.secondary {
+  background: #146EB4;
+  color: white;
+}
+
+.aws-tag.success {
+  background: #D4EDDA;
+  color: #155724;
+}
+
+.aws-tag.warning {
+  background: #FFF3CD;
+  color: #856404;
+}
+
+.aws-tag.error {
+  background: #F8D7DA;
+  color: #721C24;
+}
