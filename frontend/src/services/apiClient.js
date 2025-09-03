@@ -220,45 +220,7 @@ class ApiClient {
       };
     }
     
-    if (path.includes('/calendars')) {
-      return {
-        events: [
-          {
-            userId: 'demo-user',
-            eventId: 'demo-1',
-            title: 'DEMO：團隊站會',
-            startDate: new Date().toISOString().slice(0, 10) + 'T09:30:00',
-            endDate: new Date().toISOString().slice(0, 10) + 'T10:00:00',
-            allDay: false,
-            color: '#FF9900',
-            description: '每日 30 分鐘進度同步',
-            projectId: 'demo-1',
-            projectName: '個人工作管理',
-            projectDescription: '管理日常工作和個人任務',
-            ownerId: 'demo-user',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            userId: 'demo-user',
-            eventId: 'demo-2',
-            title: 'DEMO：與客戶會議',
-            startDate: new Date().toISOString().slice(0, 10) + 'T14:00:00',
-            endDate: new Date().toISOString().slice(0, 10) + 'T15:00:00',
-            allDay: false,
-            color: '#232F3E',
-            description: '專案需求討論',
-            projectId: 'demo-2',
-            projectName: '團隊專案',
-            projectDescription: '與團隊協作的專案管理',
-            ownerId: 'demo-user',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ],
-        count: 2
-      };
-    }
+    // calendars 已移除
     
     if (path.includes('/events')) {
       return {
@@ -270,24 +232,22 @@ class ApiClient {
     return { events: [], count: 0 };
   }
 
-  // 日曆相關 API（已實現的接口）
-  async getCalendars(params = {}) {
+  // 事件查詢（RESTful）
+  async getProjectEvents(projectId, params = {}) {
     const query = new URLSearchParams();
-    if (params.projectId) query.set('projectId', params.projectId);
     if (params.startDate) query.set('startDate', params.startDate);
     if (params.endDate) query.set('endDate', params.endDate);
     const qs = query.toString();
-    const path = qs ? `/calendars?${qs}` : '/calendars';
+    const path = qs ? `/projects/${encodeURIComponent(projectId)}/events?${qs}` : `/projects/${encodeURIComponent(projectId)}/events`;
     return this.request('get', path);
   }
 
-  async createEvent(eventData) {
-    return this.request('post', '/events', eventData);
+  async createEvent(projectId, eventData) {
+    return this.request('post', `/projects/${encodeURIComponent(projectId)}/events`, eventData);
   }
 
   async deleteEvent(eventId, projectId) {
-    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
-    return this.request('delete', `/events/${eventId}${query}`);
+    return this.request('delete', `/projects/${encodeURIComponent(projectId)}/events/${encodeURIComponent(eventId)}`);
   }
 
   // 專案管理 API（新的統一接口）

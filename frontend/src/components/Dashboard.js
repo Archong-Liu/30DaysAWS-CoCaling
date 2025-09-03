@@ -86,6 +86,9 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
         
         setProjects(formattedProjects);
         console.log('Successfully loaded projects from API:', formattedProjects);
+
+        // 補齊統計：事件與任務數量
+        updateProjectStatsCounts(formattedProjects);
       } else {
         // 如果沒有專案數據，顯示空狀態
         setProjects([]);
@@ -97,6 +100,41 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
       setProjects([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 根據 API 計算每個專案的事件/任務數量，並更新卡片
+  const updateProjectStatsCounts = async (projectList) => {
+    try {
+      await Promise.allSettled(
+        (projectList || []).map(async (p) => {
+          try {
+            const [events, tasks] = await Promise.all([
+              dataService.getEventsByProject(p.id),
+              dataService.getTasksByProject(p.id)
+            ]);
+            const totalEvents = Array.isArray(events) ? events.length : 0;
+            const totalTasks = Array.isArray(tasks) ? tasks.length : 0;
+            setProjects(prev => prev.map(pr => pr.id === p.id 
+              ? { 
+                  ...pr, 
+                  stats: { 
+                    ...(pr.stats || {}), 
+                    totalEvents, 
+                    totalTasks,
+                    totalMembers: pr.stats?.totalMembers || pr.members?.length || 1
+                  },
+                  eventCount: totalEvents
+                }
+              : pr
+            ));
+          } catch (e) {
+            console.warn('Failed to update stats for project', p.id, e);
+          }
+        })
+      );
+    } catch (e) {
+      console.warn('Failed updating project stats counts:', e);
     }
   };
 
@@ -218,6 +256,21 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
     event.stopPropagation(); // 防止觸發專案點擊
     setSelectedProject(project);
     setShowInviteForm(true);
+  };
+
+  const handleDeleteProject = async (project, event) => {
+    event.stopPropagation();
+    // eslint-disable-next-line no-restricted-globals
+    const confirmed = confirm(`確定要刪除專案「${project.name}」嗎？`);
+    if (!confirmed) return;
+    try {
+      await dataService.deleteProject(project.id);
+      setProjects(prev => prev.filter(p => p.id !== project.id));
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('刪除專案失敗，請稍後重試');
+    }
   };
 
   const handleSendInvite = async () => {
@@ -546,6 +599,13 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
                     onClick={(e) => handleInviteCollaborator(project, e)}
                   >
                     👥
+                  </button>
+                  <button
+                    className="action-btn"
+                    title="刪除專案"
+                    onClick={(e) => handleDeleteProject(project, e)}
+                  >
+                    🗑️
                   </button>
                 </div>
               </div>

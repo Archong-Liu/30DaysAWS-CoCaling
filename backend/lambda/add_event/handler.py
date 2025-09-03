@@ -21,11 +21,13 @@ def lambda_handler(event, context):
         # 從 Cognito 取得用戶 ID
         user_id = event['requestContext']['authorizer']['claims']['sub']
         
-        # 解析請求內容
+        # 解析請求內容與路徑參數
         body = json.loads(event.get('body', '{}'))
+        path_params = event.get('pathParameters') or {}
+        project_id_from_path = path_params.get('projectId')
         
         # 驗證必要欄位（事件需隸屬某專案）
-        required_fields = ['title', 'startDate', 'endDate', 'projectId']
+        required_fields = ['title', 'startDate', 'endDate']
         for field in required_fields:
             if field not in body:
                 return build_response(400, {
@@ -40,9 +42,16 @@ def lambda_handler(event, context):
         start_date = datetime.fromisoformat(body['startDate'].replace('Z', '+00:00'))
         week_of_year = f"{start_date.year}-W{start_date.isocalendar()[1]:02d}"
         
+        # 決定專案 ID（優先 pathParameters，其次 body）
+        project_id = project_id_from_path or body.get('projectId')
+        if not project_id:
+            return build_response(400, {
+                'error': 'Missing projectId'
+            })
+
         # 建立事件項目（統一以專案為分區鍵）
         event_item = {
-            'PK': f'PROJECT#{body["projectId"]}',
+            'PK': f'PROJECT#{project_id}',
             'SK': f'EVENT#{event_id}',
             # 供使用者維度查詢
             'GSI1PK': f'USER#{user_id}',
@@ -65,8 +74,7 @@ def lambda_handler(event, context):
         }
         
         # 如果事件包含專案信息，則添加到事件項目中
-        if 'projectId' in body:
-            event_item['projectId'] = body['projectId']
+        event_item['projectId'] = project_id
         if 'projectName' in body:
             event_item['projectName'] = body['projectName']
         if 'projectDescription' in body:

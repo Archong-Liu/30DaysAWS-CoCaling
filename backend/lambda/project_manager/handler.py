@@ -79,11 +79,29 @@ def create_project(event, user_id):
             'role': 'OWNER',
             'joinedAt': datetime.now().isoformat()
         }
+
+        # 可選：同時建立初始成員關係（避免額外端點）
+        initial_members = []
+        for m in body.get('members', []) or []:
+            member_id = m.get('userId') or m.get('id')
+            if not member_id or member_id == user_id:
+                continue
+            role = m.get('role', 'MEMBER')
+            initial_members.append({
+                'PK': f'PROJECT#{project_id}',
+                'SK': f'MEMBER#{member_id}',
+                'GSI1PK': f'USER#{member_id}',
+                'GSI1SK': f'PROJECT#{project_id}',
+                'role': role,
+                'joinedAt': datetime.now().isoformat()
+            })
         
         # 寫入 DynamoDB
         with table.batch_writer() as batch:
             batch.put_item(Item=project_data)
             batch.put_item(Item=owner_relation)
+            for im in initial_members:
+                batch.put_item(Item=im)
         
         return build_response(201, {
             'message': 'Project created successfully',
@@ -92,7 +110,11 @@ def create_project(event, user_id):
                 'name': project_data['name'],
                 'description': project_data['description'],
                 'color': project_data['color'],
-                'ownerId': user_id
+                'ownerId': user_id,
+                'members': [
+                    {'userId': user_id, 'role': 'OWNER'},
+                    *[{'userId': m.get('userId') or m.get('id'), 'role': (m.get('role') or 'MEMBER')} for m in (body.get('members', []) or []) if (m.get('userId') or m.get('id')) and (m.get('userId') or m.get('id')) != user_id]
+                ]
             }
         })
         

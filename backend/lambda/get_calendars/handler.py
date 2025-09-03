@@ -33,12 +33,14 @@ def lambda_handler(event, context):
         user_id = event['requestContext']['authorizer']['claims']['sub']
         print(f"User ID: {user_id}")
         
-        # 取得查詢參數
+        # 取得路徑與查詢參數
+        path_params = event.get('pathParameters', {}) or {}
+        project_id_from_path = path_params.get('projectId')
         query_params = event.get('queryStringParameters', {}) or {}
         start_date = query_params.get('startDate')
         end_date = query_params.get('endDate')
         week_of_year = query_params.get('weekOfYear')
-        project_id = query_params.get('projectId')
+        project_id = project_id_from_path or query_params.get('projectId')
         
         # 建立查詢條件
         # 1) 若給 projectId，使用主表 PK=PROJECT# 查該專案的事件

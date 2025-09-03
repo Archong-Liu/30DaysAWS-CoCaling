@@ -149,6 +149,9 @@ npm start
 ### 架構與最佳實踐
 - 參考 `docs/architecture_best_practices.md`。
 
+### API 參考
+- 參考 `docs/api_reference.md`（路徑已整理為一致的 RESTful 結構）。
+
 ## 🔧 開發指南
 
 ### 本地開發

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -14,8 +14,10 @@ const Calendar = ({ user, selectedProject }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
   const api = new ApiClient();
+  const fetchSeqRef = useRef(0);
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   const refetchAfterMutation = async () => {
@@ -125,22 +127,17 @@ const Calendar = ({ user, selectedProject }) => {
 
   const fetchEvents = async () => {
     try {
+      const seq = ++fetchSeqRef.current;
       setLoading(true);
       if (isDemo) {
         setLoading(false);
         return; // DEMO 模式不呼叫 API
       }
       
-      const data = await api.getCalendars({ projectId: selectedProject?.id });
-      console.log('Calendars data:', data);
+      const data = await api.getProjectEvents(selectedProject?.id || '');
+      console.log('Project events data:', data);
       // 安全取得事件清單（兼容不同回傳形狀）
-      const eventsArray = Array.isArray(data?.events)
-        ? data.events
-        : Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data?.events)
-            ? data.data.events
-            : [];
+      const eventsArray = Array.isArray(data?.events) ? data.events : [];
       // 過濾事件：如果有選定專案，只顯示該專案的事件
       const filteredEvents = selectedProject 
         ? eventsArray.filter(event => event.projectId === selectedProject.id)
@@ -160,7 +157,9 @@ const Calendar = ({ user, selectedProject }) => {
         }
       }));
       
-      setEvents(formattedEvents);
+      if (seq === fetchSeqRef.current) {
+        setEvents(formattedEvents);
+      }
       setError(null);
     } catch (err) {
         console.error('Error fetching events:', err);
@@ -197,6 +196,8 @@ const Calendar = ({ user, selectedProject }) => {
 
   const createEvent = async (eventData) => {
     try {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       if (isDemo) {
         const newEvent = {
           id: 'demo-' + Date.now(),
@@ -215,24 +216,45 @@ const Calendar = ({ user, selectedProject }) => {
         setEvents(prev => [...prev, newEvent]);
         return;
       }
-      await api.createEvent({
+      // 樂觀更新：先插入暫時事件，避免空回覆時畫面不變
+      const optimisticId = 'tmp-' + Date.now();
+      const optimisticEvent = {
+        id: optimisticId,
         title: eventData.title,
-        startDate: eventData.start,
-        endDate: eventData.end,
+        start: eventData.start,
+        end: eventData.end,
         allDay: eventData.allDay || false,
-        description: eventData.description || '',
-        ...(selectedProject && {
-          projectId: selectedProject.id,
-          projectName: selectedProject.name,
-          projectDescription: selectedProject.description,
-          ownerId: selectedProject.ownerId || user?.username
-        })
-      });
+        backgroundColor: selectedProject ? selectedProject.color : '#146EB4',
+        borderColor: selectedProject ? selectedProject.color : '#0F5A8A',
+        extendedProps: {
+          description: eventData.description || '',
+          projectId: selectedProject?.id,
+          projectName: selectedProject?.name
+        }
+      };
+      setEvents(prev => [...prev, optimisticEvent]);
+      await api.createEvent(
+        selectedProject?.id,
+        {
+          title: eventData.title,
+          startDate: eventData.start,
+          endDate: eventData.end,
+          allDay: eventData.allDay || false,
+          description: eventData.description || '',
+          ...(selectedProject && {
+            projectName: selectedProject.name,
+            projectDescription: selectedProject.description,
+            ownerId: selectedProject.ownerId || user?.username
+          })
+        }
+      );
       // 重新載入事件（延遲 + 重試，避免讀到未同步資料）
       await refetchAfterMutation();
     } catch (err) {
       console.error('Error creating event:', err);
       alert('建立事件時發生錯誤');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

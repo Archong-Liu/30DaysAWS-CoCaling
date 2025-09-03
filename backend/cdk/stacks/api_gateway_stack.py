@@ -101,8 +101,8 @@ class ApiGatewayStack(Stack):
             rest_api_name="Calendar App API",
             description="多用戶週曆平台 API",
             default_cors_preflight_options=apigateway.CorsOptions(
-                allow_origins=["*"],  # 明確指定前端網址
-                allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                allow_origins=["http://localhost:3000"],
+                allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 allow_headers=["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
                 allow_credentials=True
             )
@@ -115,7 +115,8 @@ class ApiGatewayStack(Stack):
         )
 
         # 建立 API 資源
-        calendars = self.api.root.add_resource("calendars")
+        # calendars 已移除（保留註解以提醒）
+        # calendars = self.api.root.add_resource("calendars")
         events = self.api.root.add_resource("events")
         event_id = events.add_resource("{eventId}")
         
@@ -129,6 +130,9 @@ class ApiGatewayStack(Stack):
         
         # 新增：專案任務資源
         project_tasks = project_id.add_resource("tasks")
+        # 新增：專案事件資源
+        project_events = project_id.add_resource("events")
+        project_event_id = project_events.add_resource("{eventId}")
 
         # 建立 Lambda 整合
         get_calendars_integration = apigateway.LambdaIntegration(
@@ -196,13 +200,7 @@ class ApiGatewayStack(Stack):
             source_arn=f"arn:aws:execute-api:{Aws.REGION}:{Aws.ACCOUNT_ID}:{self.api.rest_api_id}/*"
         )
 
-        # 新增 API 端點
-        calendars.add_method(
-            "GET",
-            get_calendars_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
+        # calendars 端點已移除
 
         events.add_method(
             "POST",
@@ -212,6 +210,27 @@ class ApiGatewayStack(Stack):
         )
 
         event_id.add_method(
+            "DELETE",
+            delete_event_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+
+        # 新增：專案底下的事件 RESTful 端點
+        project_events.add_method(
+            "GET",
+            get_calendars_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        project_events.add_method(
+            "POST",
+            add_event_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+
+        project_event_id.add_method(
             "DELETE",
             delete_event_integration,
             authorizer=auth,
