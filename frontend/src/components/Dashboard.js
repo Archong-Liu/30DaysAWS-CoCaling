@@ -1,142 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import DataService from '../services/dataService';
-import ApiClient from '../services/apiClient';
+import React, { useState } from 'react';
 import './Dashboard.css';
+import { useProject } from '../hooks/useProject';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from './common/ConfirmDialog';
 
 const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // 強制重新渲染的鍵
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
-  const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
   
-  // 初始化數據服務
-  const apiClient = new ApiClient();
-  const dataService = new DataService(apiClient);
+  // 使用自定义Hook管理项目状态和逻辑
+  const { 
+    projects, 
+    loading, 
+    isMutating,
+    createProject, 
+    updateProject, 
+    deleteProject, 
+    refreshProjects 
+  } = useProject(user);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      
-      if (isDemo) {
-        // Demo 模式使用本地數據
-        const demoProjects = [
-          {
-            id: 'demo-1',
-            name: '個人工作管理',
-            description: '管理日常工作和個人任務',
-            eventCount: 12,
-            lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            color: '#FF9900',
-            upcomingEvents: [
-              { title: '團隊會議', date: '2024-01-15', time: '09:00' },
-              { title: '專案審查', date: '2024-01-16', time: '14:00' }
-            ],
-            members: [{ id: 'user1', name: '張小明', role: 'OWNER' }]
-          },
-          {
-            id: 'demo-2',
-            name: '團隊專案',
-            description: '與團隊協作的專案管理',
-            eventCount: 8,
-            lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            color: '#146EB4',
-            upcomingEvents: [
-              { title: '客戶會議', date: '2024-01-17', time: '10:00' },
-              { title: '進度報告', date: '2024-01-18', time: '16:00' }
-            ],
-            members: [
-              { id: 'user1', name: '張小明', role: 'OWNER' },
-              { id: 'user2', name: '李小華', role: 'MEMBER' }
-            ]
-          }
-        ];
-        setProjects(demoProjects);
-        setLoading(false);
-        return;
-      }
-      
-      // 使用數據服務獲取專案
-      const projectsData = await dataService.getProjectsByUser(user.username);
-      
-      if (projectsData && Array.isArray(projectsData) && projectsData.length > 0) {
-        // 轉換為顯示格式
-        const formattedProjects = projectsData.map(project => ({
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          eventCount: project.eventCount || 0,
-          lastUpdated: project.updatedAt,
-          color: project.color || getRandomColor(),
-          upcomingEvents: project.upcomingEvents || [], // 使用從 API 獲取的事件數據
-          members: project.members || [{ id: user.username, name: user.username, role: 'OWNER' }] // 使用從 API 獲取的成員數據或默認值
-        }));
-        
-        setProjects(formattedProjects);
-        console.log('Successfully loaded projects from API:', formattedProjects);
-
-        // 補齊統計：事件與任務數量
-        updateProjectStatsCounts(formattedProjects);
-      } else {
-        // 如果沒有專案數據，顯示空狀態
-        setProjects([]);
-        console.log('No projects found in API response');
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      // 如果API失敗，顯示空狀態
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 根據 API 計算每個專案的事件/任務數量，並更新卡片
-  const updateProjectStatsCounts = async (projectList) => {
-    try {
-      await Promise.allSettled(
-        (projectList || []).map(async (p) => {
-          try {
-            const [events, tasks] = await Promise.all([
-              dataService.getEventsByProject(p.id),
-              dataService.getTasksByProject(p.id)
-            ]);
-            const totalEvents = Array.isArray(events) ? events.length : 0;
-            const totalTasks = Array.isArray(tasks) ? tasks.length : 0;
-            setProjects(prev => prev.map(pr => pr.id === p.id 
-              ? { 
-                  ...pr, 
-                  stats: { 
-                    ...(pr.stats || {}), 
-                    totalEvents, 
-                    totalTasks,
-                    totalMembers: pr.stats?.totalMembers || pr.members?.length || 1
-                  },
-                  eventCount: totalEvents
-                }
-              : pr
-            ));
-          } catch (e) {
-            console.warn('Failed to update stats for project', p.id, e);
-          }
-        })
-      );
-    } catch (e) {
-      console.warn('Failed updating project stats counts:', e);
-    }
-  };
+  // 使用确认对话框Hook
+  const confirmDialog = useConfirm();
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
@@ -150,208 +38,68 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
         color: getRandomColor()
       };
       
-      if (isDemo) {
-        // Demo 模式直接添加到本地狀態
-        const newProject = {
-          id: projectData.id,
-          name: projectData.name,
-          description: projectData.description,
-          color: projectData.color,
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          // 專案統計
-          stats: {
-            totalEvents: 0,
-            totalMembers: 1,
-            totalTasks: 0
-          },
-          // 專案設置
-          settings: {
-            allowMemberInvite: true,
-            allowEventCreation: true,
-            visibility: 'PRIVATE'
-          },
-          // 專案成員（創建者為擁有者）
-          members: [{ 
-            id: user.username, 
-            name: user.username, 
-            role: 'OWNER',
-            joinedAt: new Date().toISOString()
-          }],
-          // 專案事件
-          upcomingEvents: [],
-          eventCount: 0
-        };
-        
-        console.log('Creating new project in demo mode:', newProject);
-        
-        // 使用函數式更新確保狀態正確更新
-        setProjects(prevProjects => {
-          const updatedProjects = [...prevProjects, newProject];
-          console.log('Updated projects array:', updatedProjects);
-          return updatedProjects;
-        });
-        
-        // 強制重新渲染
-        setRefreshKey(prev => prev + 1);
-        
-        // 確保狀態更新完成後再關閉表單
-        setTimeout(() => {
-          console.log('Projects state after update:', projects);
-          // 再次強制重新渲染以確保新專案可見
-          setRefreshKey(prev => prev + 1);
-        }, 100);
-      } else {
-        // 使用數據服務創建專案
-        const newProject = await dataService.createProject(projectData);
-        
-        // 將新專案添加到本地狀態
-        setProjects(prevProjects => [...prevProjects, newProject]);
-        
-        // 強制重新渲染
-        setRefreshKey(prev => prev + 1);
-      }
+      await createProject(projectData);
       
+      // 重置表单
       setNewProjectName('');
       setNewProjectDescription('');
       setShowCreateForm(false);
-      
-      // 在 Demo 模式下，確保狀態更新後重新渲染
-      if (isDemo) {
-        setTimeout(() => {
-          console.log('Final projects state:', projects);
-        }, 100);
-      }
     } catch (error) {
       console.error('Error creating project:', error);
-      alert('創建專案失敗，請重試');
+      alert('創建專案時發生錯誤');
+    }
+  };
+
+  const handleUpdateProject = async (projectId, updates) => {
+    try {
+      await updateProject(projectId, updates);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('更新專案時發生錯誤');
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    const project = projects.find(p => p.id === projectId);
+    confirmDialog.confirm(
+      `確定要刪除專案「${project?.name}」嗎？此操作無法撤銷。`,
+      async () => {
+        try {
+          await deleteProject(projectId);
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          alert('刪除專案時發生錯誤');
+        }
+      }
+    );
+  };
+
+  const handleInviteMember = async (projectId) => {
+    if (!inviteEmail.trim()) return;
+    
+    try {
+      // 这里可以添加邀请成员的逻辑
+      console.log('Inviting member:', inviteEmail, 'to project:', projectId);
+      
+      // 重置表单
+      setInviteEmail('');
+      setInviteRole('MEMBER');
+      setShowInviteForm(false);
+    } catch (error) {
+      console.error('Error inviting member:', error);
+      alert('邀請成員時發生錯誤');
     }
   };
 
   const getRandomColor = () => {
-    const colors = ['#FF9900', '#146EB4', '#232F3E', '#D4EDDA', '#FFF3CD', '#F8D7DA'];
+    const colors = ['#FF9900', '#146EB4', '#232F3E', '#37475A', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
     return colors[Math.floor(Math.random() * colors.length)];
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '昨天';
-    if (diffDays === 0) return '今天';
-    if (diffDays < 7) return `${diffDays}天前`;
-    return date.toLocaleDateString('zh-TW');
-  };
-
-  const handleProjectClick = (project) => {
-    if (onProjectSelect) {
-      onProjectSelect(project);
-    }
-  };
-
-  const handleInviteCollaborator = (project, event) => {
-    event.stopPropagation(); // 防止觸發專案點擊
-    setSelectedProject(project);
-    setShowInviteForm(true);
-  };
-
-  const handleDeleteProject = async (project, event) => {
-    event.stopPropagation();
-    // eslint-disable-next-line no-restricted-globals
-    const confirmed = confirm(`確定要刪除專案「${project.name}」嗎？`);
-    if (!confirmed) return;
-    try {
-      await dataService.deleteProject(project.id);
-      setProjects(prev => prev.filter(p => p.id !== project.id));
-      setRefreshKey(prev => prev + 1);
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      alert('刪除專案失敗，請稍後重試');
-    }
-  };
-
-  const handleSendInvite = async () => {
-    if (!inviteEmail.trim() || !selectedProject) return;
-    
-    try {
-      if (isDemo) {
-        // Demo 模式：直接添加到本地狀態
-        const newMember = {
-          id: inviteEmail,
-          name: inviteEmail.split('@')[0],
-          role: inviteRole
-        };
-        
-        setProjects(prev => prev.map(project => 
-          project.id === selectedProject.id 
-            ? { 
-                ...project, 
-                members: [...(project.members || []), newMember],
-                stats: {
-                  ...project.stats,
-                  totalMembers: (project.stats?.totalMembers || project.members?.length || 1) + 1
-                }
-              }
-            : project
-        ));
-        
-        // 強制重新渲染以顯示新成員
-        setRefreshKey(prev => prev + 1);
-        
-        alert(`已邀請 ${inviteEmail} 加入專案`);
-      } else {
-        // 實際 API 調用
-        const result = await dataService.addProjectMember(selectedProject.id, inviteEmail, inviteRole);
-        
-        if (result && result.success) {
-          // 將新成員添加到本地狀態
-          const newMember = {
-            id: inviteEmail,
-            name: inviteEmail.split('@')[0],
-            role: inviteRole,
-            joinedAt: new Date().toISOString()
-          };
-          
-          setProjects(prev => prev.map(project => 
-            project.id === selectedProject.id 
-              ? { 
-                  ...project, 
-                  members: [...(project.members || []), newMember],
-                  stats: {
-                    ...project.stats,
-                    totalMembers: (project.stats?.totalMembers || project.members?.length || 1) + 1
-                  }
-                }
-              : project
-          ));
-          
-          // 強制重新渲染
-          setRefreshKey(prev => prev + 1);
-          
-          alert(`已邀請 ${inviteEmail} 加入專案`);
-        } else {
-          alert('邀請失敗，請重試');
-        }
-      }
-      
-      setInviteEmail('');
-      setInviteRole('MEMBER');
-      setShowInviteForm(false);
-      setSelectedProject(null);
-    } catch (error) {
-      console.error('Error inviting collaborator:', error);
-      alert('邀請失敗，請重試');
-    }
   };
 
   if (loading) {
     return (
       <div className="dashboard-container">
         <div className="loading-container">
-          <div className="aws-loading"></div>
           <p>載入專案中...</p>
         </div>
       </div>
@@ -360,20 +108,26 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
 
   return (
     <div className="dashboard-container">
+      {(loading || isMutating) && (
+        <div className="loading-container" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+          <p>{loading ? '載入專案中...' : '正在更新，請稍候...'}</p>
+        </div>
+      )}
       <div className="dashboard-header">
-        <h2>我的專案</h2>
+        <h2>專案管理</h2>
         <button 
-          className="btn btn-primary"
+          className="btn btn-primary" 
           onClick={() => setShowCreateForm(true)}
         >
-          + 建立新專案
+          + 新增專案
         </button>
       </div>
 
+      {/* 创建项目表单 */}
       {showCreateForm && (
         <div className="create-project-form">
           <div className="form-header">
-            <h3>建立新專案</h3>
+            <h3>新增專案</h3>
             <button 
               className="close-btn"
               onClick={() => setShowCreateForm(false)}
@@ -386,123 +140,36 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
               <label>專案名稱 *</label>
               <input
                 type="text"
+                placeholder="專案名稱"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="輸入專案名稱"
-                maxLength={50}
               />
             </div>
             <div className="form-group">
               <label>專案描述</label>
               <textarea
+                placeholder="專案描述"
                 value={newProjectDescription}
                 onChange={(e) => setNewProjectDescription(e.target.value)}
-                placeholder="輸入專案描述（可選）"
-                maxLength={200}
-                rows={3}
               />
             </div>
             <div className="form-actions">
+              <button className="btn" onClick={handleCreateProject}>
+                創建
+              </button>
               <button 
-                className="btn btn-secondary"
+                className="btn btn-secondary" 
                 onClick={() => setShowCreateForm(false)}
               >
                 取消
               </button>
-              <button 
-                className="btn btn-primary"
-                onClick={handleCreateProject}
-                disabled={!newProjectName.trim()}
-              >
-                建立專案
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 邀請協作者表單 */}
-      {showInviteForm && selectedProject && (
-        <div className="invite-collaborator-form">
-          <div className="form-header">
-            <h3>邀請協作者加入專案</h3>
-            <button 
-              className="close-btn"
-              onClick={() => {
-                setShowInviteForm(false);
-                setSelectedProject(null);
-                setInviteEmail('');
-                setInviteRole('MEMBER');
-              }}
-            >
-              ×
-            </button>
-          </div>
-          <div className="form-content">
-            <div className="form-group">
-              <label>專案名稱</label>
-              <input
-                type="text"
-                value={selectedProject.name}
-                disabled
-                className="disabled-input"
-              />
-            </div>
-            <div className="form-group">
-              <label>邀請郵箱 *</label>
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="輸入協作者的郵箱地址"
-                maxLength={100}
-              />
-            </div>
-            <div className="form-group">
-              <label>角色權限</label>
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-              >
-                <option value="MEMBER">成員 (MEMBER)</option>
-                <option value="VIEWER">查看者 (VIEWER)</option>
-                <option value="OWNER">擁有者 (OWNER)</option>
-              </select>
-            </div>
-            <div className="form-actions">
-              <button 
-                className="btn btn-secondary"
-                onClick={() => {
-                  setShowInviteForm(false);
-                  setSelectedProject(null);
-                  setInviteEmail('');
-                  setInviteRole('MEMBER');
-                }}
-              >
-                取消
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={handleSendInvite}
-                disabled={!inviteEmail.trim()}
-              >
-                發送邀請
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="projects-grid" key={refreshKey}>
-        {/* 調試信息（由外部開關控制） */}
-        {showDebug && (
-          <div style={{ gridColumn: '1 / -1', padding: '1rem', background: '#f0f0f0', marginBottom: '1rem', borderRadius: '8px' }}>
-            <strong>調試信息:</strong> 專案數量: {projects.length}, 刷新鍵: {refreshKey}
-            <br />
-            <strong>專案列表:</strong> {projects.map(p => p.name).join(', ')}
-          </div>
-        )}
-        
+      {/* 项目列表 */}
+      <div className="projects-grid">
         {projects.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📁</div>
@@ -521,53 +188,37 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
               <div 
                 key={project.id} 
                 className="project-card"
-                onClick={() => handleProjectClick(project)}
+                onClick={() => onProjectSelect(project)}
               >
                 <div 
                   className="project-color-bar"
                   style={{ backgroundColor: project.color }}
-                ></div>
+                />
                 <div className="project-content">
                   <h3 className="project-name">{project.name}</h3>
                   <p className="project-description">{project.description}</p>
                   
-                  {/* 專案統計信息 */}
                   <div className="project-stats">
                     <span className="stat">
                       <span className="stat-label">事件</span>
-                      <span className="stat-value">{project.stats?.totalEvents || project.eventCount || 0}</span>
+                      <span className="stat-value">{project.eventCount || 0}</span>
                     </span>
                     <span className="stat">
                       <span className="stat-label">成員</span>
-                      <span className="stat-value">{project.stats?.totalMembers || project.members?.length || 1}</span>
-                    </span>
-                    <span className="stat">
-                      <span className="stat-label">任務</span>
-                      <span className="stat-value">{project.stats?.totalTasks || 0}</span>
+                      <span className="stat-value">{project.members?.length || 1}</span>
                     </span>
                   </div>
-                  
-                  {/* 即將到來的事件 */}
-                  {project.upcomingEvents && project.upcomingEvents.length > 0 && (
-                    <div className="upcoming-events">
-                      <h4>即將到來</h4>
-                      <div className="events-list">
-                        {project.upcomingEvents.slice(0, 2).map((event, index) => (
-                          <div key={index} className="event-item">
-                            <span className="event-title">{event.title}</span>
-                            <span className="event-time">{event.date} {event.time}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* 協作者信息 */}
+
+                  {/* 成员头像与邀请提示 */}
                   <div className="project-members">
                     <div className="members-avatars">
-                      {project.members?.slice(0, 3).map((member, index) => (
-                        <div key={member.id} className="member-avatar" title={`${member.name} (${member.role})`}>
-                          {member.name.charAt(0)}
+                      {(project.members || []).slice(0, 3).map((member, index) => (
+                        <div 
+                          key={member?.id || index} 
+                          className="member-avatar" 
+                          title={`${member?.name || member?.id || 'user'} (${member?.role || 'MEMBER'})`}
+                        >
+                          {(member?.name || member?.id || '?').charAt(0)}
                         </div>
                       ))}
                       {project.members && project.members.length > 3 && (
@@ -576,42 +227,49 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
                         </div>
                       )}
                     </div>
-                    
-                    {/* 協作者提示 */}
+
                     {(!project.members || project.members.length <= 1) && (
                       <div 
                         className="collaborator-hint"
-                        onClick={(e) => handleInviteCollaborator(project, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowInviteForm(true);
+                        }}
                       >
                         <span className="hint-icon">👥</span>
-                        <span className="hint-text">邀請協作者</span>
+                        <span className="hint-text">邀請成員</span>
                       </div>
                     )}
                   </div>
-                </div>
-                
-                <div className="project-actions">
-                  <button className="action-btn" title="查看日曆">📅</button>
-                  <button className="action-btn" title="專案設置">⚙️</button>
-                  <button 
-                    className="action-btn" 
-                    title="邀請協作者"
-                    onClick={(e) => handleInviteCollaborator(project, e)}
-                  >
-                    👥
-                  </button>
-                  <button
-                    className="action-btn"
-                    title="刪除專案"
-                    onClick={(e) => handleDeleteProject(project, e)}
-                  >
-                    🗑️
-                  </button>
+
+                  <div className="project-actions">
+                    <button 
+                      className="action-btn" 
+                      title="查看日曆"
+                      onClick={(e) => { e.stopPropagation(); onProjectSelect(project); }}
+                    >
+                      📅
+                    </button>
+                    <button 
+                      className="action-btn" 
+                      title="邀請成員"
+                      onClick={(e) => { e.stopPropagation(); setShowInviteForm(true); }}
+                    >
+                      👥
+                    </button>
+                    <button 
+                      className="action-btn" 
+                      title="刪除專案"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
-            
-            {/* 新增專案卡片 */}
+
+            {/* 新增專案提示卡片 */}
             <div 
               className="project-card add-project-card"
               onClick={() => setShowCreateForm(true)}
@@ -625,6 +283,73 @@ const Dashboard = ({ user, onProjectSelect, showDebug = false }) => {
           </>
         )}
       </div>
+
+      {/* 邀请成员表单 */}
+      {showInviteForm && (
+        <div className="invite-collaborator-form">
+          <div className="form-header">
+            <h3>邀請成員</h3>
+            <button 
+              className="close-btn"
+              onClick={() => setShowInviteForm(false)}
+            >
+              ×
+            </button>
+          </div>
+          <div className="form-content">
+            <div className="form-group">
+              <label>成員郵箱 *</label>
+              <input
+                type="email"
+                placeholder="成員郵箱"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>角色</label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+              >
+                <option value="MEMBER">成員</option>
+                <option value="ADMIN">管理員</option>
+              </select>
+            </div>
+            <div className="form-actions">
+              <button className="btn" onClick={() => handleInviteMember()}>
+                邀請
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowInviteForm(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug信息 */}
+      {showDebug && (
+        <div className="debug-info">
+          <h4>Debug 信息</h4>
+          <p>專案數量: {projects.length}</p>
+          <p>用戶: {user?.username}</p>
+          <button onClick={refreshProjects}>刷新專案</button>
+        </div>
+      )}
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={confirmDialog.onCancel}
+        confirmText="刪除"
+        cancelText="取消"
+      />
     </div>
   );
 };

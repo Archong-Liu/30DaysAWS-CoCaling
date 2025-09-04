@@ -214,10 +214,10 @@ export class DataService {
     }
   }
 
-  // 事件相關操作（RESTful 專案層級）
-  async createEvent(projectId, eventData) {
+  // 事件相關操作（使用新的統一接口）
+  async createEvent(eventData) {
     try {
-      const result = await this.api.createEvent(projectId, eventData);
+      const result = await this.api.createEvent(eventData);
       // 容忍空回應
       if (!result || (typeof result === 'object' && Object.keys(result).length === 0)) {
         return { success: true };
@@ -231,7 +231,7 @@ export class DataService {
 
   async getEventsByProject(projectId, params = {}) {
     try {
-      const result = await this.api.getProjectEvents(projectId, params);
+      const result = await this.api.getEvents(null, projectId);
       if (result && result.events) return result.events;
       return [];
     } catch (error) {
@@ -240,9 +240,9 @@ export class DataService {
     }
   }
 
-  async deleteEvent(eventId, projectId) {
+  async deleteEvent(eventId) {
     try {
-      const result = await this.api.deleteEvent(eventId, projectId);
+      const result = await this.api.deleteEvent(eventId);
       // 204 空回應容忍
       if (!result || (typeof result === 'object' && Object.keys(result).length === 0)) {
         return { success: true };

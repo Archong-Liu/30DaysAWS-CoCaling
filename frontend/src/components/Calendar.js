@@ -1,178 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import { fetchAuthSession } from 'aws-amplify/auth';
-
-import { get, post, del } from 'aws-amplify/api';
 import './Calendar.css';
-import ApiClient from '../services/apiClient';
+import { useEvent } from '../hooks/useEvent';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from './common/ConfirmDialog';
 
 const Calendar = ({ user, selectedProject }) => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
-  const api = new ApiClient();
-  const fetchSeqRef = useRef(0);
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  // 使用自定义Hook管理事件状态和逻辑
+  const { 
+    events, 
+    loading, 
+    error, 
+    isSubmitting, 
+    isMutating,
+    createEvent, 
+    deleteEvent, 
+    fetchEvents 
+  } = useEvent(user, selectedProject);
 
-  const refetchAfterMutation = async () => {
-    try {
-      await sleep(200);
-      await fetchEvents();
-      await sleep(200);
-      await fetchEvents();
-    } catch (e) {
-      console.error('Refetch after mutation failed:', e);
-    }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!user) return;
-    if (isDemo) {
-      // 使用本地假資料
-      const demo = [
-        {
-          id: 'demo-1',
-          title: 'DEMO：團隊站會',
-          start: new Date().toISOString().slice(0, 10) + 'T09:30:00',
-          end: new Date().toISOString().slice(0, 10) + 'T10:00:00',
-          allDay: false,
-          backgroundColor: '#FF9900',
-          borderColor: '#E47911',
-          extendedProps: { 
-            description: '每日 30 分鐘進度同步',
-            projectId: 'demo-1',
-            projectName: '個人工作管理'
-          }
-        },
-        {
-          id: 'demo-2',
-          title: 'DEMO：與客戶會議',
-          start: new Date().toISOString().slice(0, 10) + 'T14:00:00',
-          end: new Date().toISOString().slice(0, 10) + 'T15:00:00',
-          allDay: false,
-          backgroundColor: '#232F3E',
-          borderColor: '#37475A',
-          extendedProps: { 
-            description: '專案需求討論',
-            projectId: 'demo-2',
-            projectName: '團隊專案'
-          }
-        }
-      ];
-      
-      // 在 Demo 模式下也應用專案過濾
-      const filteredDemo = selectedProject 
-        ? demo.filter(event => event.extendedProps.projectId === selectedProject.id)
-        : demo;
-      
-      setEvents(filteredDemo);
-      setLoading(false);
-      return;
-    }
-    fetchEvents();
-  }, [user]);
-
-  // 監聽 selectedProject 變化，重新過濾事件
-  useEffect(() => {
-    if (user && !isDemo) {
-      fetchEvents();
-    } else if (user && isDemo) {
-      // Demo 模式下重新應用過濾邏輯
-      const demo = [
-        {
-          id: 'demo-1',
-          title: 'DEMO：團隊站會',
-          start: new Date().toISOString().slice(0, 10) + 'T09:30:00',
-          end: new Date().toISOString().slice(0, 10) + 'T10:00:00',
-          allDay: false,
-          backgroundColor: '#FF9900',
-          borderColor: '#E47911',
-          extendedProps: { 
-            description: '每日 30 分鐘進度同步',
-            projectId: 'demo-1',
-            projectName: '個人工作管理'
-          }
-        },
-        {
-          id: 'demo-2',
-          title: 'DEMO：與客戶會議',
-          start: new Date().toISOString().slice(0, 10) + 'T14:00:00',
-          end: new Date().toISOString().slice(0, 10) + 'T15:00:00',
-          allDay: false,
-          backgroundColor: '#232F3E',
-          borderColor: '#37475A',
-          extendedProps: { 
-            description: '專案需求討論',
-            projectId: 'demo-2',
-            projectName: '團隊專案'
-          }
-        }
-      ];
-      
-      const filteredDemo = selectedProject 
-        ? demo.filter(event => event.extendedProps.projectId === selectedProject.id)
-        : demo;
-      
-      setEvents(filteredDemo);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProject, user, isDemo]);
-
-  const fetchEvents = async () => {
-    try {
-      const seq = ++fetchSeqRef.current;
-      setLoading(true);
-      if (isDemo) {
-        setLoading(false);
-        return; // DEMO 模式不呼叫 API
-      }
-      
-      const data = await api.getProjectEvents(selectedProject?.id || '');
-      console.log('Project events data:', data);
-      // 安全取得事件清單（兼容不同回傳形狀）
-      const eventsArray = Array.isArray(data?.events) ? data.events : [];
-      // 過濾事件：如果有選定專案，只顯示該專案的事件
-      const filteredEvents = selectedProject 
-        ? eventsArray.filter(event => event.projectId === selectedProject.id)
-        : eventsArray;
-
-      const formattedEvents = filteredEvents.map(event => ({
-        id: event.eventId || event.id,
-        title: event.title,
-        start: event.startDate || event.start,
-        end: event.endDate || event.end,
-        allDay: event.allDay,
-        backgroundColor: event.color,
-        borderColor: event.color,
-        extendedProps: {
-          description: event.description,
-          projectName: event.projectName
-        }
-      }));
-      
-      if (seq === fetchSeqRef.current) {
-        setEvents(formattedEvents);
-      }
-      setError(null);
-    } catch (err) {
-        console.error('Error fetching events:', err);
-        console.error('Error details:', {
-          message: err.message,
-          stack: err.stack,
-          name: err.name
-        });
-        setError(`載入事件時發生錯誤: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-  };
+  // 使用确认对话框Hook
+  const confirmDialog = useConfirm();
 
   const handleDateSelect = (selectInfo) => {
     const title = prompt('請輸入事件標題:');
@@ -188,89 +39,10 @@ const Calendar = ({ user, selectedProject }) => {
   };
 
   const handleEventClick = (clickInfo) => {
-    // eslint-disable-next-line no-restricted-globals
-    if (confirm(`確定要刪除事件 "${clickInfo.event.title}" 嗎？`)) {
-      deleteEvent(clickInfo.event.id);
-    }
-  };
-
-  const createEvent = async (eventData) => {
-    try {
-      if (isSubmitting) return;
-      setIsSubmitting(true);
-      if (isDemo) {
-        const newEvent = {
-          id: 'demo-' + Date.now(),
-          title: eventData.title,
-          start: eventData.start,
-          end: eventData.end,
-          allDay: eventData.allDay || false,
-          backgroundColor: selectedProject ? selectedProject.color : '#146EB4',
-          borderColor: selectedProject ? selectedProject.color : '#0F5A8A',
-          extendedProps: { 
-            description: eventData.description || '',
-            projectId: selectedProject?.id,
-            projectName: selectedProject?.name
-          }
-        };
-        setEvents(prev => [...prev, newEvent]);
-        return;
-      }
-      // 樂觀更新：先插入暫時事件，避免空回覆時畫面不變
-      const optimisticId = 'tmp-' + Date.now();
-      const optimisticEvent = {
-        id: optimisticId,
-        title: eventData.title,
-        start: eventData.start,
-        end: eventData.end,
-        allDay: eventData.allDay || false,
-        backgroundColor: selectedProject ? selectedProject.color : '#146EB4',
-        borderColor: selectedProject ? selectedProject.color : '#0F5A8A',
-        extendedProps: {
-          description: eventData.description || '',
-          projectId: selectedProject?.id,
-          projectName: selectedProject?.name
-        }
-      };
-      setEvents(prev => [...prev, optimisticEvent]);
-      await api.createEvent(
-        selectedProject?.id,
-        {
-          title: eventData.title,
-          startDate: eventData.start,
-          endDate: eventData.end,
-          allDay: eventData.allDay || false,
-          description: eventData.description || '',
-          ...(selectedProject && {
-            projectName: selectedProject.name,
-            projectDescription: selectedProject.description,
-            ownerId: selectedProject.ownerId || user?.username
-          })
-        }
-      );
-      // 重新載入事件（延遲 + 重試，避免讀到未同步資料）
-      await refetchAfterMutation();
-    } catch (err) {
-      console.error('Error creating event:', err);
-      alert('建立事件時發生錯誤');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const deleteEvent = async (eventId) => {
-    try {
-      if (isDemo) {
-        setEvents(prev => prev.filter(e => e.id !== eventId));
-        return;
-      }
-      await api.deleteEvent(eventId, selectedProject?.id);
-      // 重新載入事件（延遲 + 重試，避免讀到未同步資料）
-      await refetchAfterMutation();
-    } catch (err) {
-      console.error('Error deleting event:', err);
-      alert('刪除事件時發生錯誤');
-    }
+    confirmDialog.confirm(
+      `確定要刪除事件「${clickInfo.event.title}」嗎？`,
+      () => deleteEvent(clickInfo.event.id)
+    );
   };
 
   if (loading) {
@@ -299,6 +71,11 @@ const Calendar = ({ user, selectedProject }) => {
 
   return (
     <div className="calendar-container">
+      {(loading || isMutating) && (
+        <div style={{ padding: '0.5rem 0', textAlign: 'center' }}>
+          {loading ? '載入事件中...' : '正在更新事件，請稍候...'}
+        </div>
+      )}
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         headerToolbar={{
@@ -324,6 +101,16 @@ const Calendar = ({ user, selectedProject }) => {
           list: '列表'
         }}
         height="auto"
+      />
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={confirmDialog.onCancel}
+        confirmText="刪除"
+        cancelText="取消"
       />
     </div>
   );

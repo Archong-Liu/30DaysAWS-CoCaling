@@ -80,6 +80,8 @@ class ApiClient {
           response = await put(requestOptions);
           break;
         case 'delete':
+          // 確保 DELETE 也攜帶 JSON body（如 { eventId }）
+          requestOptions.options.body = data;
           response = await del(requestOptions);
           break;
         default:
@@ -114,7 +116,8 @@ class ApiClient {
       method: method.toUpperCase(),
       headers
     };
-    if (data && method.toLowerCase() !== 'get' && method.toLowerCase() !== 'delete') {
+    // 允許非 GET 方法（包含 DELETE）攜帶 body
+    if (data && method.toLowerCase() !== 'get') {
       init.body = JSON.stringify(data);
     }
     const res = await fetch(url, init);
@@ -232,26 +235,11 @@ class ApiClient {
     return { events: [], count: 0 };
   }
 
-  // 事件查詢（RESTful）
-  async getProjectEvents(projectId, params = {}) {
-    const query = new URLSearchParams();
-    if (params.startDate) query.set('startDate', params.startDate);
-    if (params.endDate) query.set('endDate', params.endDate);
-    const qs = query.toString();
-    const path = qs ? `/projects/${encodeURIComponent(projectId)}/events?${qs}` : `/projects/${encodeURIComponent(projectId)}/events`;
-    return this.request('get', path);
-  }
-
-  async createEvent(projectId, eventData) {
-    return this.request('post', `/projects/${encodeURIComponent(projectId)}/events`, eventData);
-  }
-
-  async deleteEvent(eventId, projectId) {
-    return this.request('delete', `/projects/${encodeURIComponent(projectId)}/events/${encodeURIComponent(eventId)}`);
-  }
-
   // 專案管理 API（新的統一接口）
-  async getProjects() {
+  async getProjects(projectId = null) {
+    if (projectId) {
+      return this.request('get', '/projects', { projectId });
+    }
     return this.request('get', '/projects');
   }
 
@@ -260,17 +248,23 @@ class ApiClient {
   }
 
   async updateProject(projectId, projectData) {
-    return this.request('put', `/projects/${projectId}`, projectData);
+    // 将ID包含在请求体中
+    const dataWithId = { ...projectData, id: projectId };
+    return this.request('put', '/projects', dataWithId);
   }
 
   async deleteProject(projectId) {
-    return this.request('delete', `/projects/${projectId}`);
+    // RESTful: DELETE /projects/{projectId}
+    const path = `/projects/${encodeURIComponent(projectId)}`;
+    return this.request('delete', path);
   }
 
   // 任務管理 API（新的統一接口）
   async getTasks(projectId = null) {
-    const path = projectId ? `/projects/${projectId}/tasks` : '/tasks';
-    return this.request('get', path);
+    if (projectId) {
+      return this.request('get', '/tasks', { projectId });
+    }
+    return this.request('get', '/tasks');
   }
 
   async createTask(taskData) {
@@ -278,11 +272,45 @@ class ApiClient {
   }
 
   async updateTask(taskId, taskData) {
-    return this.request('put', `/tasks/${taskId}`, taskData);
+    // 将ID包含在请求体中
+    const dataWithId = { ...taskData, id: taskId };
+    return this.request('put', '/tasks', dataWithId);
   }
 
   async deleteTask(taskId) {
-    return this.request('delete', `/tasks/${taskId}`);
+    // 将ID包含在请求体中
+    return this.request('delete', '/tasks', { taskId });
+  }
+
+  // 事件管理 API（新的統一接口）
+  async getEvents(eventId = null, projectId = null) {
+    const params = {};
+    if (eventId) params.eventId = eventId;
+    if (projectId) params.projectId = projectId;
+    
+    if (Object.keys(params).length > 0) {
+      return this.request('get', '/events', params);
+    }
+    return this.request('get', '/events');
+  }
+
+  async createEvent(eventData) {
+    return this.request('post', '/events', eventData);
+  }
+
+  async updateEvent(eventId, eventData) {
+    // 将ID包含在请求体中
+    const dataWithId = { ...eventData, id: eventId };
+    return this.request('put', '/events', dataWithId);
+  }
+
+  async deleteEvent(eventId, projectId) {
+    // RESTful: DELETE /projects/{projectId}/events/{eventId}
+    if (!projectId) {
+      throw new Error('deleteEvent requires projectId');
+    }
+    const path = `/projects/${encodeURIComponent(projectId)}/events/${encodeURIComponent(eventId)}`;
+    return this.request('delete', path);
   }
 
   // 用戶管理 API（新的統一接口）

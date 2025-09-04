@@ -1,11 +1,12 @@
-# Calendar App CDK 部署說明
+# Calendar App 後端（CDK）
 
+使用 AWS CDK 建置 Cognito、API Gateway、Lambda 與 DynamoDB。
 ## 前置需求
 
-1. 安裝 AWS CLI 並設定認證
-2. 安裝 Node.js (CDK 需要)
-3. 安裝 Python 3.8+
-4. 安裝 CDK CLI: `npm install -g aws-cdk`
+1. AWS CLI 已配置憑證
+2. Node.js
+3. Python 3.12
+4. CDK CLI：`npm install -g aws-cdk`
 
 ## 安裝依賴
 
@@ -13,34 +14,48 @@
 pip install -r requirements.txt
 ```
 
-## 部署步驟
+## 部署
 
-1. **初始化 CDK (首次使用)**
-   ```bash
-   cdk bootstrap
-   ```
+- 部署所有堆疊
+```bash
+cdk deploy --all --require-approval never
+```
 
-2. **部署所有堆疊**
-   ```bash
-   cdk deploy --all
-   ```
+- 只部署 API Gateway 堆疊
+```bash
+cdk deploy CalendarAppApiGatewayStack --require-approval never
+```
 
-3. **部署特定堆疊**
-   ```bash
-   cdk deploy CalendarAppCognitoStack
-   cdk deploy CalendarAppDynamoDBStack
-   cdk deploy CalendarAppApiGatewayStack
-   cdk deploy CalendarAppS3FrontendStack
-   ```
+> 首次需 `cdk bootstrap`
 
-## 堆疊說明
+## 架構重點
 
-- **CognitoStack**: 用戶認證與授權
-- **DynamoDBStack**: 資料儲存
-- **ApiGatewayStack**: API 服務
-- **S3FrontendStack**: 前端靜態檔案託管
+- 認證：Cognito User Pool + Hosted UI（API 使用 Cognito Authorizer）
+- 資料庫：DynamoDB 單表設計
+- API Gateway 路徑
+  - 專案
+    - `GET /projects`
+    - `POST /projects`
+    - `PUT /projects`
+    - `DELETE /projects/{projectId}`
+  - 事件
+    - `GET /events`、`GET /projects/{projectId}/events`
+    - `POST /events`
+    - `PUT /events`
+    - `DELETE /projects/{projectId}/events/{eventId}`
 
-## 清理資源
+
+## 權限與 CORS
+
+- Lambda 以最小權限授予對 DynamoDB 的存取（`grant_read_write_data`）
+- API Gateway CORS 預檢允許：`*` 與常用標頭/方法
+
+## 常見操作
+
+- 檢視 API URL 與 ID（CDK 輸出）
+- 觀察 CloudWatch Logs：檢查 Lambda 執行情況
+
+## 清理
 
 ```bash
 cdk destroy --all

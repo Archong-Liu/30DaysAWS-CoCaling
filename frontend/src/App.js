@@ -1,63 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { signOut, getCurrentUser, signInWithRedirect } from 'aws-amplify/auth';
+import React, { useState } from 'react';
 import Calendar from './components/Calendar';
 import Dashboard from './components/Dashboard';
 import './App.css';
 import Sidebar from './components/Sidebar';
+import { useAuth } from './hooks/useAuth';
+import { useProject } from './hooks/useProject';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' 或 'calendar'
-  const [selectedProject, setSelectedProject] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
-  const isDemo = String(process.env.REACT_APP_DEMO_MODE).toLowerCase() === 'true';
+  
+  // 使用自定义Hook管理认证状态
+  const { isAuthenticated, user, loading, isDemo, handleSignOut, handleSignIn } = useAuth();
+  
+  // 使用自定义Hook管理项目状态
+  const { selectedProject, selectProject, clearSelectedProject } = useProject(user);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    checkAuthState();
-  }, []);
+  // 如果还在加载认证状态，显示加载界面
+  if (loading) {
+    return (
+      <div className="app">
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          載入中...
+        </div>
+      </div>
+    );
+  }
 
-  const checkAuthState = async () => {
-    try {
-      if (isDemo) {
-        setIsAuthenticated(true);
-        setUser({ username: 'demo-user', attributes: { email: 'demo@example.com' } });
-        return;
-      }
-      const currentUser = await getCurrentUser();
-      setIsAuthenticated(true);
-      setUser(currentUser);
-    } catch (error) {
-      setIsAuthenticated(false);
-      setUser(null);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      // 使用 Hosted UI 全域登出，完成後重導至 redirectSignOut
-      await signOut({ global: true });
-      setIsAuthenticated(false);
-      setUser(null);
-      setCurrentView('dashboard');
-      setSelectedProject(null);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  const handleProjectSelect = (project) => {
-    setSelectedProject(project);
-    setCurrentView('calendar');
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentView('dashboard');
-    setSelectedProject(null);
-  };
-
+  // 如果未认证，显示登录界面
   if (!isAuthenticated) {
     return (
       <div className="app">
@@ -69,12 +40,12 @@ function App() {
             {isDemo ? (
               <div style={{ textAlign: 'center' }}>
                 <p>目前為 DEMO 模式，已自動登入示範帳號。</p>
-                <button className="btn" onClick={checkAuthState}>進入頁面</button>
+                <button className="btn" onClick={handleSignIn}>進入頁面</button>
               </div>
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <p>使用 Cognito Hosted UI 登入</p>
-                <button className="btn" onClick={() => signInWithRedirect()}>登入</button>
+                <button className="btn" onClick={handleSignIn}>登入</button>
               </div>
             )}
           </div>
@@ -82,6 +53,25 @@ function App() {
       </div>
     );
   }
+
+  // 项目选择处理函数
+  const handleProjectSelect = (project) => {
+    selectProject(project);
+    setCurrentView('calendar');
+  };
+
+  // 返回仪表板处理函数
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+    clearSelectedProject();
+  };
+
+  // 登出处理函数
+  const handleSignOutAndReset = async () => {
+    await handleSignOut();
+    setCurrentView('dashboard');
+    clearSelectedProject();
+  };
 
   return (
     <div className="app">
@@ -95,7 +85,7 @@ function App() {
               </button>
             )}
             <span>歡迎, {user?.attributes?.email || user?.username}</span>
-            <button className="btn" onClick={handleSignOut}>
+            <button className="btn" onClick={handleSignOutAndReset}>
               登出
             </button>
           </div>

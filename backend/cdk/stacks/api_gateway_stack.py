@@ -28,44 +28,25 @@ class ApiGatewayStack(Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # 建立 Lambda 函數
-        self.get_calendars_lambda = lambda_.Function(
-            self, "GetCalendarsFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+        # 建立 Lambda 函數（命名對齊資源與路徑語義）
+        # /events 集合資源：GET/POST/PUT 以及 /projects/{projectId}/events/{eventId} 的 DELETE 由同一處理器負責
+        self.events_collection_lambda = lambda_.Function(
+            self, "EventsCollectionFunction",
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler="handler.lambda_handler",
-            code=lambda_.Code.from_asset("../lambda/get_calendars"),
+            code=lambda_.Code.from_asset("../lambda/events"),
             timeout=Duration.seconds(30),
             environment={
                 "DYNAMODB_TABLE": dynamodb_table.table_name
             }
         )
 
-        self.add_event_lambda = lambda_.Function(
-            self, "AddEventFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="handler.lambda_handler",
-            code=lambda_.Code.from_asset("../lambda/add_event"),
-            timeout=Duration.seconds(30),
-            environment={
-                "DYNAMODB_TABLE": dynamodb_table.table_name
-            }
-        )
+        # 刪除事件由同一個 events 處理器處理，無需單獨函數
 
-        self.delete_event_lambda = lambda_.Function(
-            self, "DeleteEventFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="handler.lambda_handler",
-            code=lambda_.Code.from_asset("../lambda/delete_event"),
-            timeout=Duration.seconds(30),
-            environment={
-                "DYNAMODB_TABLE": dynamodb_table.table_name
-            }
-        )
-
-        # 新增：專案管理 Lambda 函數
-        self.project_manager_lambda = lambda_.Function(
-            self, "ProjectManagerFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+        # /projects 集合資源：GET/POST/PUT/DELETE
+        self.projects_collection_lambda = lambda_.Function(
+            self, "ProjectsCollectionFunction",
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler="handler.lambda_handler",
             code=lambda_.Code.from_asset("../lambda/project_manager"),
             timeout=Duration.seconds(30),
@@ -74,10 +55,10 @@ class ApiGatewayStack(Stack):
             }
         )
 
-        # 新增：任務管理 Lambda 函數
-        self.task_manager_lambda = lambda_.Function(
-            self, "TaskManagerFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+        # /tasks 集合資源：GET/POST/PUT/DELETE
+        self.tasks_collection_lambda = lambda_.Function(
+            self, "TasksCollectionFunction",
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler="handler.lambda_handler",
             code=lambda_.Code.from_asset("../lambda/task_manager"),
             timeout=Duration.seconds(30),
@@ -87,13 +68,11 @@ class ApiGatewayStack(Stack):
         )
 
         # 授予 Lambda 函數 DynamoDB 權限
-        dynamodb_table.grant_read_data(self.get_calendars_lambda)
-        dynamodb_table.grant_write_data(self.add_event_lambda)
-        dynamodb_table.grant_write_data(self.delete_event_lambda)
+        dynamodb_table.grant_read_write_data(self.events_collection_lambda)
         
         # 新增：授予專案和任務管理 Lambda 函數 DynamoDB 權限
-        dynamodb_table.grant_read_write_data(self.project_manager_lambda)
-        dynamodb_table.grant_read_write_data(self.task_manager_lambda)
+        dynamodb_table.grant_read_write_data(self.projects_collection_lambda)
+        dynamodb_table.grant_read_write_data(self.tasks_collection_lambda)
 
         # 建立 API Gateway
         self.api = apigateway.RestApi(
@@ -101,10 +80,9 @@ class ApiGatewayStack(Stack):
             rest_api_name="Calendar App API",
             description="多用戶週曆平台 API",
             default_cors_preflight_options=apigateway.CorsOptions(
-                allow_origins=["http://localhost:3000"],
+                allow_origins=["*"],
                 allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                allow_headers=["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
-                allow_credentials=True
+                allow_headers=["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"]
             )
         )
 
@@ -135,57 +113,37 @@ class ApiGatewayStack(Stack):
         project_event_id = project_events.add_resource("{eventId}")
 
         # 建立 Lambda 整合
-        get_calendars_integration = apigateway.LambdaIntegration(
-            self.get_calendars_lambda,
+        events_collection_integration = apigateway.LambdaIntegration(
+            self.events_collection_lambda,
             request_templates={"application/json": '{"statusCode": "200"}'}
         )
 
-        add_event_integration = apigateway.LambdaIntegration(
-            self.add_event_lambda,
-            request_templates={"application/json": '{"statusCode": "200"}'}
-        )
-
-        delete_event_integration = apigateway.LambdaIntegration(
-            self.delete_event_lambda,
-            request_templates={"application/json": '{"statusCode": "200"}'}
-        )
+        # 單一刪除路由也使用同一整合
 
         # 新增：專案管理 Lambda 整合
-        project_manager_integration = apigateway.LambdaIntegration(
-            self.project_manager_lambda,
+        projects_collection_integration = apigateway.LambdaIntegration(
+            self.projects_collection_lambda,
             request_templates={"application/json": '{"statusCode": "200"}'}
         )
 
         # 新增：任務管理 Lambda 整合
-        task_manager_integration = apigateway.LambdaIntegration(
-            self.task_manager_lambda,
+        tasks_collection_integration = apigateway.LambdaIntegration(
+            self.tasks_collection_lambda,
             request_templates={"application/json": '{"statusCode": "200"}'}
         )
 
         # 明確授予 API Gateway 調用 Lambda 的權限
-        self.get_calendars_lambda.add_permission(
+        self.events_collection_lambda.add_permission(
             "ApiGatewayInvoke",
             principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
             action="lambda:InvokeFunction",
             source_arn=f"arn:aws:execute-api:{Aws.REGION}:{Aws.ACCOUNT_ID}:{self.api.rest_api_id}/*"
         )
 
-        self.add_event_lambda.add_permission(
-            "ApiGatewayInvoke",
-            principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
-            action="lambda:InvokeFunction",
-            source_arn=f"arn:aws:execute-api:{Aws.REGION}:{Aws.ACCOUNT_ID}:{self.api.rest_api_id}/*"
-        )
-
-        self.delete_event_lambda.add_permission(
-            "ApiGatewayInvoke",
-            principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
-            action="lambda:InvokeFunction",
-            source_arn=f"arn:aws:execute-api:{Aws.REGION}:{Aws.ACCOUNT_ID}:{self.api.rest_api_id}/*"
-        )
+        # 無需額外權限，已授予 events_collection_lambda
 
         # 新增：專案管理 Lambda 權限
-        self.project_manager_lambda.add_permission(
+        self.projects_collection_lambda.add_permission(
             "ApiGatewayInvoke",
             principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
             action="lambda:InvokeFunction",
@@ -193,7 +151,7 @@ class ApiGatewayStack(Stack):
         )
 
         # 新增：任務管理 Lambda 權限
-        self.task_manager_lambda.add_permission(
+        self.tasks_collection_lambda.add_permission(
             "ApiGatewayInvoke",
             principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
             action="lambda:InvokeFunction",
@@ -202,96 +160,117 @@ class ApiGatewayStack(Stack):
 
         # calendars 端點已移除
 
-        events.add_method(
-            "POST",
-            add_event_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
-
-        event_id.add_method(
-            "DELETE",
-            delete_event_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
-
-        # 新增：專案底下的事件 RESTful 端點
-        project_events.add_method(
-            "GET",
-            get_calendars_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
-        project_events.add_method(
-            "POST",
-            add_event_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
-
-        project_event_id.add_method(
-            "DELETE",
-            delete_event_integration,
-            authorizer=auth,
-            authorization_type=apigateway.AuthorizationType.COGNITO
-        )
-
-        # 新增：專案管理 API 端點
+        # 主要資源端點 - 簡化設計，ID 通過請求體傳遞
+        
+        # 專案管理 API 端點
         projects.add_method(
             "GET",
-            project_manager_integration,
+            projects_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
         projects.add_method(
             "POST",
-            project_manager_integration,
+            projects_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
-        project_id.add_method(
+        projects.add_method(
             "PUT",
-            project_manager_integration,
+            projects_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
-        project_id.add_method(
+        projects.add_method(
             "DELETE",
-            project_manager_integration,
+            projects_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
 
-        # 新增：任務管理 API 端點
+        # RESTful 刪除專案：/projects/{projectId}
+        project_id.add_method(
+            "DELETE",
+            projects_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+
+        # 任務管理 API 端點
+        tasks.add_method(
+            "GET",
+            tasks_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
         tasks.add_method(
             "POST",
-            task_manager_integration,
+            tasks_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
-        task_id.add_method(
+        tasks.add_method(
             "PUT",
-            task_manager_integration,
+            tasks_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
-        task_id.add_method(
+        tasks.add_method(
             "DELETE",
-            task_manager_integration,
+            tasks_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
-        # 新增：專案任務查詢 API 端點
+        # 事件管理 API 端點
+        events.add_method(
+            "GET",
+            events_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        events.add_method(
+            "POST",
+            events_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        events.add_method(
+            "PUT",
+            events_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        # 舊的 DELETE /events 端點已移除，改用 RESTful /projects/{projectId}/events/{eventId}
+        
+        # RESTful 刪除事件：/projects/{projectId}/events/{eventId}
+        project_event_id.add_method(
+            "DELETE",
+            events_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        # 關聯查詢端點（使用查詢參數過濾）
         project_tasks.add_method(
             "GET",
-            task_manager_integration,
+            tasks_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
+        project_events.add_method(
+            "GET",
+            events_collection_integration,
             authorizer=auth,
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
