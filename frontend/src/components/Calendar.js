@@ -9,7 +9,7 @@ import { useEvent } from '../hooks/useEvent';
 import { useConfirm } from '../hooks/useConfirm';
 import ConfirmDialog from './common/ConfirmDialog';
 
-const Calendar = ({ user, selectedProject }) => {
+const Calendar = ({ user, selectedProject, isMobile = false }) => {
   // 使用自定义Hook管理事件状态和逻辑
   const { 
     events, 
@@ -78,14 +78,18 @@ const Calendar = ({ user, selectedProject }) => {
       )}
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-        headerToolbar={{
+        headerToolbar={isMobile ? {
+          left: 'prev,next',
+          center: 'title',
+          right: 'today'
+        } : {
           left: 'prev,next today',
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         }}
-        initialView="dayGridMonth"
+        initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
         editable={true}
-        selectable={true}
+        selectable={!isMobile}
         selectMirror={true}
         dayMaxEvents={true}
         weekends={true}
@@ -100,7 +104,7 @@ const Calendar = ({ user, selectedProject }) => {
           day: '日',
           list: '列表'
         }}
-        height="auto"
+        height={isMobile ? 'auto' : 'auto'}
       />
 
       {/* 确认对话框 */}

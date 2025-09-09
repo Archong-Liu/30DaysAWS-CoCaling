@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Calendar from './components/Calendar';
 import Dashboard from './components/Dashboard';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import { useAuth } from './hooks/useAuth';
 import { useProject } from './hooks/useProject';
+import useIsMobile from './hooks/useIsMobile';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' 或 'calendar'
+  const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
   
@@ -16,6 +18,11 @@ function App() {
   
   // 使用自定义Hook管理项目状态
   const { selectedProject, selectProject, clearSelectedProject } = useProject(user);
+
+  // 手機預設收合側邊欄
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile ? true : false);
+  }, [isMobile]);
 
   // 如果还在加载认证状态，显示加载界面
   if (loading) {
@@ -91,14 +98,20 @@ function App() {
           </div>
         </div>
       </header>
-      <div style={{ display: 'grid', gridTemplateColumns: isSidebarOpen ? '220px 1fr' : '56px 1fr', gap: '1rem' }}>
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onToggleOpen={() => setIsSidebarOpen(v => !v)}
-          onGoHome={handleBackToDashboard}
-          showDebug={showDebug}
-          onToggleDebug={() => setShowDebug(v => !v)}
-        />
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : (isSidebarOpen ? '220px 1fr' : '56px 1fr'), 
+        gap: '1rem' 
+      }}>
+        {!isMobile && (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onToggleOpen={() => setIsSidebarOpen(v => !v)}
+            onGoHome={handleBackToDashboard}
+            showDebug={showDebug}
+            onToggleDebug={() => setShowDebug(v => !v)}
+          />
+        )}
         <main className="main-content">
           {currentView === 'dashboard' ? (
             <Dashboard 
@@ -114,7 +127,7 @@ function App() {
                   <p>{selectedProject.description}</p>
                 </div>
               )}
-              <Calendar user={user} selectedProject={selectedProject} />
+              <Calendar user={user} selectedProject={selectedProject} isMobile={isMobile} />
             </div>
           )}
         </main>
