@@ -228,6 +228,14 @@ class ApiGatewayStack(Stack):
             authorization_type=apigateway.AuthorizationType.COGNITO
         )
         
+        # RESTful 刪除任務：/tasks/{taskId}
+        task_id.add_method(
+            "DELETE",
+            tasks_collection_integration,
+            authorizer=auth,
+            authorization_type=apigateway.AuthorizationType.COGNITO
+        )
+        
         # 事件管理 API 端點
         events.add_method(
             "GET",
