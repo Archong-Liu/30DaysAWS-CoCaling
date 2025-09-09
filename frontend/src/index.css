@@ -65,6 +65,99 @@ code {
   min-height: 60vh;
 }
 
+/* 登入落版 */
+.auth-landing {
+  position: relative;
+  border-radius: 16px;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(20, 110, 180, 0.1) 0%, rgba(255, 153, 0, 0.1) 100%);
+}
+
+.auth-hero {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.brand {
+  background: white;
+  border: 1px solid #E1E5E9;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(35, 47, 62, 0.08);
+}
+
+.brand-badge {
+  display: inline-block;
+  background: #FFEDD5;
+  color: #9A3412;
+  border: 1px solid #FED7AA;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.brand-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  color: #232F3E;
+}
+
+.brand-subtitle {
+  margin: 0 0 1rem 0;
+  color: #6B7280;
+}
+
+.brand-highlights {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.brand-highlights span {
+  background: #EEF2F7;
+  color: #232F3E;
+  border: 1px solid #E1E5E9;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(225, 229, 233, 0.7);
+}
+
+.auth-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(35, 47, 62, 0.12);
+  max-width: 420px;
+  width: 100%;
+  border: 1px solid #E1E5E9;
+}
+
+.btn.cta {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.btn-secondary {
+  background: #146EB4;
+}
+
+@media (max-width: 992px) {
+  .auth-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
 .auth-card {
   background: white;
   padding: 2rem;
@@ -180,5 +273,49 @@ code {
   .auth-card {
     margin: 1rem;
     padding: 1.5rem;
+  }
+}
+
+/* 小尺寸手機優化 */
+@media (max-width: 576px) {
+  .auth-landing {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .brand {
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 1.4rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .brand-highlights {
+    justify-content: center;
+  }
+
+  .brand-highlights span {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+  }
+
+  .auth-card {
+    padding: 1.25rem;
+    margin: 0.75rem;
+  }
+
+  .btn,
+  .btn.cta {
+    width: 100%;
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
   }
 }

@@ -77,8 +77,8 @@ class ApiGatewayStack(Stack):
         # 建立 API Gateway
         self.api = apigateway.RestApi(
             self, "CalendarAppApi",
-            rest_api_name="Calendar App API",
-            description="多用戶週曆平台 API",
+            rest_api_name="Co-Caling 日暦共編 API",
+            description="Co-Caling 日暦共編 - 多用戶共用日曆 API",
             default_cors_preflight_options=apigateway.CorsOptions(
                 allow_origins=["*"],
                 allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

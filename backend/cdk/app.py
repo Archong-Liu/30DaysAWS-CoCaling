@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Calendar App CDK Application
-多用戶週曆平台的 CDK 部署應用
+Co-Caling 日暦共編 CDK Application
+多人共編的現代化日曆平台 CDK 部署應用
 """
 
 import aws_cdk as cdk

@@ -40,21 +40,37 @@ function App() {
     return (
       <div className="app">
         <header className="header">
-          <h1>📅 多用戶週曆平台</h1>
+          <h1> Co-Caling 日曆共編</h1>
         </header>
         <main className="main-content">
-          <div className="auth-container">
-            {isDemo ? (
-              <div style={{ textAlign: 'center' }}>
-                <p>目前為 DEMO 模式，已自動登入示範帳號。</p>
-                <button className="btn" onClick={handleSignIn}>進入頁面</button>
+          <div className="auth-landing">
+            <div className="auth-hero">
+              <div className="brand">
+                <div className="brand-badge">New</div>
+                <h2 className="brand-title">在同一個日曆，無縫協作</h2>
+                <p className="brand-subtitle">Co-Caling 日曆共編，讓團隊事件、任務與排程在雲端即時同步。</p>
+                <div className="brand-highlights">
+                  <span>即時同步</span>
+                  <span>多人共編</span>
+                  <span>AWS 安全</span>
+                </div>
               </div>
-            ) : (
-              <div style={{ textAlign: 'center' }}>
-                <p>使用 Cognito Hosted UI 登入</p>
-                <button className="btn" onClick={handleSignIn}>登入</button>
+              <div className="auth-card glass-card">
+                <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>開始使用</h3>
+                {isDemo ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ marginTop: 0 }}>目前為 DEMO 模式，已自動登入示範帳號。</p>
+                    <button className="btn btn-primary cta" onClick={handleSignIn}>進入頁面</button>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ marginTop: 0 }}>使用 Cognito Hosted UI 登入</p>
+                    <button className="btn btn-primary cta" onClick={handleSignIn}>登入</button>
+                  </div>
+                )}
+                <div className="auth-note">登入後可建立專案、共享行程，並以 FullCalendar 檢視。</div>
               </div>
-            )}
+            </div>
           </div>
         </main>
       </div>
@@ -84,7 +100,7 @@ function App() {
     <div className="app">
       <header className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1>📅 多用戶週曆平台</h1>
+          <h1> Co-Caling 日曆共編</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {currentView === 'calendar' && (
               <button className="btn btn-secondary" onClick={handleBackToDashboard}>

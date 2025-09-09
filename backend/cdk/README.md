@@ -1,4 +1,4 @@
-# Calendar App 後端（CDK）
+# Co-Caling 日暦共編 後端（CDK）
 
 使用 AWS CDK 建置 Cognito、API Gateway、Lambda 與 DynamoDB。
 ## 前置需求

@@ -1,7 +1,7 @@
 {
-  "name": "calendar-app-frontend",
+  "name": "co-caling-frontend",
   "version": "1.0.0",
-  "description": "多用戶週曆平台前端應用",
+  "description": "Co-Caling 日暦共編 - 前端應用",
   "private": true,
   "dependencies": {
     "@fullcalendar/react": "^6.1.10",

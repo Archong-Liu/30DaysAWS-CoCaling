@@ -1,4 +1,4 @@
-# 多用戶週曆平台前端
+# Co-Caling 日暦共編 前端
 
 React 前端，使用 AWS Amplify（v6）整合 Cognito Hosted UI 進行登入，透過 API Gateway + Lambda 與後端溝通。
 
@@ -20,7 +20,7 @@ npm start
 ## 認證
 
 - Cognito Hosted UI；登入/登出由 Amplify Auth 處理。
-- `src/hooks/useAuth.js` 提供 `isAuthenticated`、`user`、`handleSignIn`、`handleSignOut`。
+- `src/hooks/useAuth.js` 提供 `isAuthenticated`、`user`、`handleSignIn`、`handleSignOut`
 
 ## 前端架構與模組
 
