@@ -2,23 +2,19 @@
 
 一個基於 AWS 雲端服務的現代化日曆應用，支援多用戶管理個人和團隊事件。
 
-## 🚀 功能特色
+##  功能特色
 
-- 📅 **完整的日曆視圖** - 月、週、日、列表視圖
-- 🔐 **安全的用戶認證** - AWS Cognito 整合
-- 📱 **響應式設計** - 支援桌面和行動裝置
-- ⚡ **即時同步** - 事件即時更新
-- 🎨 **現代化 UI** - 美觀的使用者介面
-- 🔄 **自動部署** - CI/CD 流程
+-  **完整的日曆視圖** - 月、週、日、列表視圖
+-  **安全的用戶認證** - AWS Cognito 整合
+-  **響應式設計** - 支援桌面和行動裝置
+-  **即時同步** - 事件即時更新
+-  **現代化 UI** - 美觀的使用者介面
+-  **自動部署** - CI/CD 流程
 
-## 🏗️ 架構概覽
+## 🏗 架構概覽
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React 前端    │    │  API Gateway    │    │   Lambda 函數   │
-│   (S3 + CF)     │◄──►│   (Cognito)     │◄──►│   (DynamoDB)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+![https://ithelp.ithome.com.tw/upload/images/20250909/20178103gOygiO0NGe.png](https://ithelp.ithome.com.tw/upload/images/20250909/20178103gOygiO0NGe.png)
+
 
 ### 技術棧
 
@@ -40,7 +36,7 @@
 - Amazon CloudFront
 - GitHub Actions
 
-## 📁 專案結構
+##  專案結構
 
 ```
 calendar-app/
@@ -78,7 +74,7 @@ calendar-app/
 └── .gitignore                 # Git 忽略檔案
 ```
 
-## 🚀 快速開始
+##  快速開始
 
 ### 前置需求
 
@@ -152,7 +148,7 @@ npm start
 ### API 參考
 - 參考 `docs/api_reference.md`（路徑已整理為一致的 RESTful 結構）。
 
-## 🔧 開發指南
+##  開發指南
 
 ### 本地開發
 
@@ -183,7 +179,7 @@ cd frontend
 npm test
 ```
 
-## 🚀 部署
+## 部署
 
 ### 自動部署 (推薦)
 
@@ -208,21 +204,21 @@ npm run build
 aws s3 sync build/ s3://your-bucket-name --delete
 ```
 
-## 🔒 安全性
+## 安全性
 
 - 所有 API 端點都需要 Cognito 認證
 - DynamoDB 使用 IAM 角色進行存取控制
 - 前端透過 HTTPS 提供服務
 - 環境變數用於敏感資訊管理
 
-## 📊 監控
+## 監控
 
 - CloudWatch 日誌和指標
 - DynamoDB 效能監控
 - API Gateway 存取日誌
 - CloudFront 快取統計
 
-## 🤝 貢獻
+## 貢獻
 
 1. Fork 專案
 2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
